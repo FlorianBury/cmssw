@@ -19,22 +19,26 @@ def addOverflows(histo):
     histo.SetBinContent(nB, histo.GetBinContent(nB)+histo.GetBinContent(nB+1))
 
 if __name__ == "__main__":
-    name = "combinedRuns.root"
-    #name = "diffhistos321779.root"
+    #name = "combinedRuns.root"
+    name = "diffhistos321779.root"
     #name = "diffhistos321054.root"
     hFile = ROOT.TFile.Open(name, "READ")
     refSuffix = "B" # Classic ZS
     newSuffix = "A" # Hybrid ZS
     outpath = "comparisonPlots"
-    histoList = ["digiStatDiff/nDigis", "clusterStatDiff/nClus",
+    histo1DList = ["digiStatDiff/nDigis", "clusterStatDiff/nClus",
             "clusterStatDiff/clusCharge", "clusterStatDiff/clusWidth", "clusterStatDiff/clusBary", "clusterStatDiff/clusVar"]
-    titleList = ["Number of digis", "Number of clusters",
+    title1DList = ["Number of digis", "Number of clusters",
                 "Cluster charge", "Cluster Width", "Cluster barycenter", "Cluster variance"]
+
+    histo2DList = ["clusterStatDiff/clusWidthVsCharge"]
+    title2DList = ["Cluster width VS cluster charge"]
 
     canvas = ROOT.TCanvas('c1','c1',800,700)
     canvas.Print(name.replace('.root','.pdf['))
 
-    for hName,hTitle in zip(histoList,titleList):
+    # Loop over 1D hist #
+    for hName,hTitle in zip(histo1DList,title1DList):
         print (hName)
         # Get histos #
         hName_n = hName.replace("/", "_")
@@ -127,7 +131,7 @@ if __name__ == "__main__":
             hDiff.SetLineColor(ROOT.kBlue)
             hDiff.SetLineWidth(2)
             hDiff.Draw()
-            canvas.Print(name.replace('.root','.pdf'),'Title:'+hName_n+'_diff.pdf')
+            canvas.Print(name.replace('.root','.pdf'),'Title:'+hName_n+'_diff')
             canvas.Clear()
         if hRelDiff: 
             canvas.SetLogy()
@@ -138,7 +142,7 @@ if __name__ == "__main__":
             hRelDiff.SetLineColor(ROOT.kBlue)
             hRelDiff.SetLineWidth(2)
             hRelDiff.Draw()
-            canvas.Print(name.replace('.root','.pdf'),'Title:'+hName_n+'_reldiff.pdf')
+            canvas.Print(name.replace('.root','.pdf'),'Title:'+hName_n+'_reldiff')
             canvas.Clear()
         if h2D: 
             #addOverflows(hRelDiff)
@@ -148,8 +152,47 @@ if __name__ == "__main__":
             h2D.SetTitle(hTitle+' 2D comparison')
             h2D.GetZaxis().SetTitleOffset(1.6)
             h2D.Draw("colz")
-            canvas.Print(name.replace('.root','.pdf'),'Title:'+hName_n+'_2D.pdf')
+            canvas.Print(name.replace('.root','.pdf'),'Title:'+hName_n+'_2D')
             canvas.Clear()
+
+    # Loop over 2D hist #
+    for hName,hTitle in zip(histo2DList,title2DList):
+        print (hName)
+        # Get histos #
+        hName_n = hName.replace("/", "_")
+        hRef = hFile.Get(hName+refSuffix)
+        hNew = hFile.Get(hName+newSuffix)
+
+        # Draw Ref #
+        canvas.SetRightMargin(0.2)
+        canvas.SetLogz()
+        canvas.SetLogy(False)
+        hRef.Draw("colz")
+        hRef.GetZaxis().SetTitleOffset(1.6)
+        canvas.Print(name.replace('.root','.pdf'),'Title:'+hName_n+'_classic')
+        canvas.Clear()
+        
+        # Draw New #
+        canvas.SetRightMargin(0.2)
+        canvas.SetLogz()
+        canvas.SetLogy(False)
+        hNew.Draw("colz")
+        hNew.GetZaxis().SetTitleOffset(1.6)
+        canvas.Print(name.replace('.root','.pdf'),'Title:'+hName_n+'_hybrid')
+        canvas.Clear()
+
+        # Ratio #
+        canvas.SetRightMargin(0.2)
+        canvas.SetLogz(False)
+        canvas.SetLogy(False)
+        hRatio = hNew.Clone(hName+"Ratio")
+        hRatio.Sumw2()
+        hRatio.Divide(hRef)
+        hRatio.Draw("colz")
+        canvas.Print(name.replace('.root','.pdf'),'Title:'+hName_n+'_ratio')
+        canvas.Clear()
+
+
 
     canvas.Print(name.replace('.root','.pdf'))
     canvas.Print(name.replace('.root','.pdf]'))

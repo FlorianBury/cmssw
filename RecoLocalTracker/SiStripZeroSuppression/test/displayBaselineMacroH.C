@@ -24,62 +24,58 @@
 
 
 
-void  displayBaselineMacro(TString file){
+void  displayBaselineMacroH(TString file){
     gStyle->SetOptStat(0);
     gROOT->SetBatch(true);
     /* Select particular detId and event numbers */
     std::vector<pair<int,int>> Selection;  // <event,detid>
-    ////Selection.insert(std::make_pair(9,369121610)); // TEST, NOT A BAD BASELINE
-    ////Selection.insert(std::make_pair(9,369120437)); // TEST, NOT A BAD BASELINE
-    //Selection.insert(std::make_pair(23,470422441)); // TEST, NOT A BAD BASELINE
-    //Selection.insert(std::make_pair(23,470422512)); // TEST, NOT A BAD BASELINE
-    //Selection.insert(std::make_pair(23,470341157)); // TEST, NOT A BAD BASELINE
-    //Selection.insert(std::make_pair(23,470442980)); // TEST, NOT A BAD BASELINE
-    //Selection.push_back(std::make_pair(23,470422441)); // TEST, NOT A BAD BASELINE
-    //Selection.push_back(std::make_pair(23,470422512)); // TEST, NOT A BAD BASELINE
-    //Selection.push_back(std::make_pair(23,470341157)); // TEST, NOT A BAD BASELINE
-    //Selection.push_back(std::make_pair(23,470442980)); // TEST, NOT A BAD BASELINE
-    //Selection.push_back(std::make_pair(23,470442732)); // TEST, NOT A BAD BASELINE
-    //Selection.push_back(std::make_pair(23,470425956)); // TEST, NOT A BAD BASELINE
-    //Selection.push_back(std::make_pair(23,470389157)); // TEST, NOT A BAD BASELINE
-    //Selection.push_back(std::make_pair(23,470128558)); // TEST, NOT A BAD BASELINE
-    //Selection.push_back(std::make_pair(23,369174796)); // TEST, NOT A BAD BASELINE
-    //Selection.push_back(std::make_pair(23,369141274)); // TEST, NOT A BAD BASELINE
-    //Selection.push_back(std::make_pair(23,369138262)); // TEST, NOT A BAD BASELINE
-    //Selection.push_back(std::make_pair(23,369154572)); // TEST, NOT A BAD BASELINE
-    //Selection.push_back(std::make_pair(23,369175140)); // TEST, NOT A BAD BASELINE
-    Selection.push_back(std::make_pair(68,369120358)); // TEST, NOT A BAD BASELINE
+    //Selection.insert(std::make_pair(9,369121610)); // TEST, NOT A BAD BASELINE
+    //Selection.insert(std::make_pair(9,369120437)); // TEST, NOT A BAD BASELINE
+    Selection.push_back(std::make_pair(23,470422441)); // TEST, NOT A BAD BASELINE
+    Selection.push_back(std::make_pair(23,470422512)); // TEST, NOT A BAD BASELINE
+    Selection.push_back(std::make_pair(23,470341157)); // TEST, NOT A BAD BASELINE
+    Selection.push_back(std::make_pair(23,470442980)); // TEST, NOT A BAD BASELINE
+    Selection.push_back(std::make_pair(23,470422441)); // TEST, NOT A BAD BASELINE
+    Selection.push_back(std::make_pair(23,470422512)); // TEST, NOT A BAD BASELINE
+    Selection.push_back(std::make_pair(23,470341157)); // TEST, NOT A BAD BASELINE
+    Selection.push_back(std::make_pair(23,470442980)); // TEST, NOT A BAD BASELINE
+    Selection.push_back(std::make_pair(23,470442732)); // TEST, NOT A BAD BASELINE
+    Selection.push_back(std::make_pair(23,470425956)); // TEST, NOT A BAD BASELINE
+    Selection.push_back(std::make_pair(23,470389157)); // TEST, NOT A BAD BASELINE
+    Selection.push_back(std::make_pair(23,470128558)); // TEST, NOT A BAD BASELINE
+    Selection.push_back(std::make_pair(23,369174796)); // TEST, NOT A BAD BASELINE
+    Selection.push_back(std::make_pair(23,369141274)); // TEST, NOT A BAD BASELINE
+    Selection.push_back(std::make_pair(23,369138262)); // TEST, NOT A BAD BASELINE
+    Selection.push_back(std::make_pair(23,369154572)); // TEST, NOT A BAD BASELINE
+    Selection.push_back(std::make_pair(23,369175140)); // TEST, NOT A BAD BASELINE
+    Selection.push_back(std::make_pair(23,369120358)); // TEST, NOT A BAD BASELINE
+    Selection.push_back(std::make_pair(23,369121562)); // TEST, NOT A BAD BASELINE
     Selection.push_back(std::make_pair(23,369120637)); // TEST, NOT A BAD BASELINE
     Selection.push_back(std::make_pair(24,436228793)); // BAD BASELINE run 321779
     Selection.push_back(std::make_pair(67,436245750)); // BAD BASELINE run 321779
     Selection.push_back(std::make_pair(71,470050086)); // BAD BASELINE run 321779
-    Selection.push_back(std::make_pair(112,369125510)); // BAD BASELINE run 321779
-    Selection.push_back(std::make_pair(107,369124773)); // BAD BASELINE run 321779
-    Selection.push_back(std::make_pair(650,470422954)); // BAD BASELINE run 321779
-    Selection.push_back(std::make_pair(156,369121390)); // BAD BASELINE run 321779
-    Selection.push_back(std::make_pair(201,369158484)); // BAD BASELINE run 321779
-    Selection.push_back(std::make_pair(206,402666289)); // BAD BASELINE run 321779
-    Selection.push_back(std::make_pair(251,369141845)); // BAD BASELINE run 321779
-    Selection.push_back(std::make_pair(301,369120421)); // BAD BASELINE run 321779
 
     std::vector<bool> check(Selection.size(),false);
 
     /* Open file and generate canvas */
     TFile *f;//, *fo;
     TString BaseDir;
-    TString dir_ZS1[3];
-    TString dir_ZS2[3];
+    TString dir_ZS1[4];
+    TString dir_ZS2[4];
     TString fullPath, title, subDet, genSubDet;
     TCanvas *C;
     C = new TCanvas();
     f = new TFile(file);
+    //    fo = new TFile(ofile, "RECREATE");
+    //BaseDir="DQMData/Results/SpyChannel/";
     dir_ZS1[0]="hybridBaselineAnalyzer/ProcessedRawDigis"; // OK
     dir_ZS1[1]="hybridBaselineAnalyzer/Baseline";
     dir_ZS1[2]="hybridBaselineAnalyzer/Clusters";
+    dir_ZS1[3]="hybridBaselineAnalyzer/RawDigis"; // ???
     dir_ZS2[0]="baselineAnalyzerZS2/ProcessedRawDigis";
     dir_ZS2[1]="baselineAnalyzerZS2/Baseline"; // no need
     dir_ZS2[2]="baselineAnalyzerZS2/Clusters";
-
+    dir_ZS2[3]="baselineAnalyzerZS2/RawDigis"; // ???
     f->cd();
     //	fo->Write();
     //	fo->Close();
@@ -151,10 +147,9 @@ void  displayBaselineMacro(TString file){
                 //leg.AddEntry(h,"VR - Ped - apvCM_{mean}","l");
                 leg.AddEntry(h,"Processed raw digis","l");
 
-                h->SetLineWidth(1);
-                h->SetLineStyle(1);
-                //h->SetLineColorAlpha(603, 0.7);
-                h->SetLineColor(1);
+                h->SetLineWidth(2);
+                h->SetLineStyle(2);
+                h->SetLineColor(602);
                 h->SetTitle(title);
                 h->SetXTitle("StripNumber");
                 h->SetYTitle("Charge (ADC counts)");
@@ -163,10 +158,9 @@ void  displayBaselineMacro(TString file){
                 TH1F* hb = (TH1F*) f->Get(dir_ZS1[1]+"/"+obj->GetName());
 
                 if(hb!=0){
-                    hb->SetLineWidth(3);
-                    hb->SetLineStyle(7);
-                    hb->SetLineColorAlpha(600, 0.7);
-                    //hb->SetLineColor(633);
+                    hb->SetLineWidth(2);
+                    hb->SetLineStyle(2);
+                    hb->SetLineColor(633);
                     leg.AddEntry(hb,"Baseline with hybrid ZS","l");
                     hb->Draw("hist p l same");
                 }
@@ -175,20 +169,30 @@ void  displayBaselineMacro(TString file){
                 TH1F* hc = (TH1F*) f->Get(dir_ZS1[2]+"/"+obj->GetName());
 
                 if(hc!=0){
-                    hc->SetLineWidth(3);
+                    hc->SetLineWidth(2);
                     hc->SetLineStyle(7);
-                    //hc->SetLineColor(418);
-                    hc->SetLineColorAlpha(419, 0.7);
+                    hc->SetLineColor(418);
                     leg.AddEntry(hc,"Clusters with hybrid ZS","l");
                     hc->Draw("hist p l same");
                 }
+                TH1F* hd = (TH1F*) f->Get(dir_ZS1[3]+"/"+obj->GetName());
+
+                if(hd!=0){
+                    hd->SetLineWidth(2);
+                    hd->SetLineStyle(2);
+                    hd->SetLineColor(6);
+                    leg.AddEntry(hd,"Raw digis","l");
+                    hd->Draw("hist p l same");
+                }
+
                 else
                     std::cout << "not found " << obj->GetName()<< std::endl;
 
 
                 /* ZS2 histograms */
-                /*f->cd();
-                TH1F* h2 = (TH1F*) f->Get(dir_ZS2[0]+"/"+obj->GetName()); // same by construction
+                /* should be the same by construction
+                f->cd();
+                TH1F* h2 = (TH1F*) f->Get(dir_ZS2[0]+"/"+obj->GetName());
                 if (h2!=0){
                     h2->SetLineWidth(2);
                     h2->SetLineStyle(1);
@@ -197,14 +201,14 @@ void  displayBaselineMacro(TString file){
                     h2->Draw("hist p l same");
                 }
                 */
+
                 f->cd();
                 TH1F* hb2 = (TH1F*) f->Get(dir_ZS2[1]+"/"+obj->GetName());
 
                 if(hb2!=0){
-                    hb2->SetLineWidth(3);
-                    hb2->SetLineStyle(7);
-                    //hb2->SetLineColor(433);
-                    hb2->SetLineColorAlpha(633, 0.7);
+                    hb2->SetLineWidth(2);
+                    hb2->SetLineStyle(2);
+                    hb2->SetLineColor(433);
                     leg.AddEntry(hb2,"Baseline with classic ZS","l");
                     hb2->Draw("hist p l same");
                 }
@@ -212,10 +216,9 @@ void  displayBaselineMacro(TString file){
                 f->cd();
                 TH1F* h2c = (TH1F*) f->Get(dir_ZS2[2]+"/"+obj->GetName());
                 if(h2c!=0){
-                    h2c->SetLineWidth(3);
+                    h2c->SetLineWidth(2);
                     h2c->SetLineStyle(7);
-                    //h2c->SetLineColor(412);
-                    h2c->SetLineColorAlpha(400, 0.7);
+                    h2c->SetLineColor(412);
                     leg.AddEntry(h2c,"Clusters with classic ZS","l");
                     h2c->Draw("hist p l same");
                 }
