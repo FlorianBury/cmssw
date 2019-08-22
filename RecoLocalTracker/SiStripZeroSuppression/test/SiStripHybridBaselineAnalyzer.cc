@@ -97,6 +97,7 @@ class SiStripHybridBaselineAnalyzer : public edm::one::EDAnalyzer<edm::one::Shar
     bool plotDigis_;
     bool plotAPVCM_;
     bool plotPedestals_;
+    bool useInvalidDetIds_;
 
     edm::EDGetTokenT<edm::DetSetVector<SiStripProcessedRawDigi>> srcBaseline_;
     edm::EDGetTokenT<edm::DetSetVector<SiStripProcessedRawDigi>> srcBaselineH_;
@@ -107,6 +108,8 @@ class SiStripHybridBaselineAnalyzer : public edm::one::EDAnalyzer<edm::one::Shar
     edm::EDGetTokenT<edm::DetSetVector<SiStripProcessedRawDigi>> srcAPVCM_;
     edm::EDGetTokenT<edm::DetSetVector<SiStripDigi>> srcDigis_;
     edm::EDGetTokenT<edmNew::DetSetVector<SiStripCluster>> srcClusters_;
+    edm::EDGetTokenT<std::vector<uint32_t>> invalidDetIdDigis_;
+    edm::EDGetTokenT<std::vector<uint32_t>> invalidDetIdClusters_;
 
     edm::Service<TFileService> fs_;
 
@@ -139,6 +142,7 @@ SiStripHybridBaselineAnalyzer::SiStripHybridBaselineAnalyzer(const edm::Paramete
   plotAPVCM_ = conf.getParameter<bool>( "plotAPVCM" );
   plotPedestals_ = conf.getParameter<bool>( "plotPedestals" );
   plotDigis_ = conf.getParameter<bool>( "plotDigis" );
+  useInvalidDetIds_ = conf.getParameter<bool>( "useInvalidDetIds" );
 
   if (plotBaseline_) {
     srcBaseline_ = consumes<edm::DetSetVector<SiStripProcessedRawDigi>>(conf.getParameter<edm::InputTag>( "srcBaseline" ));
@@ -158,7 +162,10 @@ SiStripHybridBaselineAnalyzer::SiStripHybridBaselineAnalyzer(const edm::Paramete
     srcDigis_ = consumes<edm::DetSetVector<SiStripDigi>>(conf.getParameter<edm::InputTag>("srcDigis"));
   if (plotClusters_)
     srcClusters_ = consumes<edmNew::DetSetVector<SiStripCluster>>(conf.getParameter<edm::InputTag>("srcClusters"));
-
+  if (useInvalidDetIds_){
+    invalidDetIdDigis_ = consumes<std::vector<uint32_t>>(conf.getParameter<edm::InputTag>("invalidDetIdDigis"));
+    invalidDetIdClusters_ = consumes<std::vector<uint32_t>>(conf.getParameter<edm::InputTag>("invalidDetIdClusters")); 
+  }
   rawAlgos_ = SiStripRawProcessingFactory::create(conf.getParameter<edm::ParameterSet>("Algorithms"));
   nModuletoDisplay_ = conf.getParameter<uint32_t>( "nModuletoDisplay" );
 
@@ -259,6 +266,13 @@ SiStripHybridBaselineAnalyzer::analyze(const edm::Event& e, const edm::EventSetu
   if (plotClusters_) {
     e.getByToken(srcClusters_, clusters);
   }
+
+  edm::Handle<std::vector<uint32_t>> detIdDigis;
+  edm::Handle<std::vector<uint32_t>> detIdClusters;
+  if (useInvalidDetIds_){
+    e.getByToken(invalidDetIdDigis_, detIdDigis);
+    e.getByToken(invalidDetIdClusters_, detIdClusters);
+  }
    
   char detIds[20];
   char evs[20];
@@ -276,8 +290,26 @@ SiStripHybridBaselineAnalyzer::analyze(const edm::Event& e, const edm::EventSetu
   h1BadAPVperEvent_->Fill(NBabAPVs);
 
   for ( const auto& rawDigis_zs : *moduleRawDigiZS ) {
-    if(actualModule_ > nModuletoDisplay_) return;
+    if (!useInvalidDetIds_){
+        if(actualModule_ > nModuletoDisplay_) return;
+    }
     uint32_t detId = rawDigis_zs.id;
+    if (useInvalidDetIds_){
+        bool is_invalid = false;
+        for (const auto& id: *detIdDigis){
+            if (detId==id){
+                is_invalid = true;
+                break;
+            }
+        }
+        for (const auto &id : *detIdClusters){
+            if (detId==id){
+                is_invalid = true;
+                break;
+            }
+        }
+        if (!is_invalid) continue;
+    }   
     const auto& rawDigis = (*moduleRawDigi)[detId];
 
     actualModule_++;

@@ -1,4 +1,4 @@
-#include "FWCore/Framework/interface/stream/EDAnalyzer.h"
+#include "FWCore/Framework/interface/stream/EDProducer.h"
 #include "FWCore/Framework/interface/Frameworkfwd.h"
 #include "FWCore/Utilities/interface/InputTag.h"
 
@@ -9,12 +9,13 @@
 #include "CommonTools/UtilAlgos/interface/TFileService.h"
 #include "TH2.h"
 #include "TTree.h"
+#include <iostream>
 
-class SiStripClusterStatsDiff : public edm::stream::EDAnalyzer<>
+class SiStripClusterStatsDiff : public edm::stream::EDProducer<>
 {
     public:
         SiStripClusterStatsDiff(const edm::ParameterSet& conf);
-        void analyze(const edm::Event& evt, const edm::EventSetup& eSetup) override;
+        void produce(edm::Event& evt, const edm::EventSetup& eSetup) override;
     private:
         edm::EDGetTokenT<edmNew::DetSetVector<SiStripCluster>> m_digiAtoken;
         edm::EDGetTokenT<edmNew::DetSetVector<SiStripCluster>> m_digiBtoken;
@@ -28,6 +29,14 @@ class SiStripClusterStatsDiff : public edm::stream::EDAnalyzer<>
         float chargeB;
         float widthA;
         float widthB;
+
+        bool detectInvalidDetIds;
+        double invalidMinCharge = 0;
+        double invalidMaxCharge = 1000000;
+        double invalidMinWidth = 0;
+        double invalidMaxWidth = 1000;
+        std::vector<uint32_t> invalidDetIdClusters;
+        std::vector<uint32_t> excludedDetId;
 };
 
 #include "FWCore/Framework/interface/MakerMacros.h"
@@ -37,7 +46,13 @@ DEFINE_FWK_MODULE(SiStripClusterStatsDiff);
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 #include "FWCore/MessageLogger/interface/MessageLogger.h"
 
-SiStripClusterStatsDiff::SiStripClusterStatsDiff(const edm::ParameterSet& conf)
+SiStripClusterStatsDiff::SiStripClusterStatsDiff(const edm::ParameterSet& conf):
+    detectInvalidDetIds(conf.getParameter<bool>("detectInvalidDetIds")),
+    invalidMinCharge(conf.getParameter<double>("invalidMinCharge")),
+    invalidMaxCharge(conf.getParameter<double>("invalidMaxCharge")),
+    invalidMinWidth(conf.getParameter<double>("invalidMinWidth")),
+    invalidMaxWidth(conf.getParameter<double>("invalidMaxWidth")),
+    excludedDetId(conf.getParameter<std::vector<uint32_t>>("excludedDetId"))
 {
     const auto inTagA = conf.getParameter<edm::InputTag>("A");
     m_digiAtoken = consumes<edmNew::DetSetVector<SiStripCluster>>(inTagA);
@@ -57,8 +72,8 @@ SiStripClusterStatsDiff::SiStripClusterStatsDiff(const edm::ParameterSet& conf)
     h_clusWidthA = fs->make<TH1F>("clusWidthA", ("Cluster width in collection "+inTagA.encode()+";Cluster width [Number of strips]").c_str(), 125, 0., 125.);
     h_clusWidthB = fs->make<TH1F>("clusWidthB", ("Cluster width in collection "+inTagA.encode()+";Cluster width [Number of strips]").c_str(), 125, 0., 125.);
 
-    h_clusWidthdVsChargeA = fs->make<TH2F>("clusWidthVsChargeA", ("Cluster width VS cluster charge per module in collection "+inTagA.encode()+";Cluster charge [ADC]; Cluster width [Number of strips]").c_str(), 125, 0., 20000., 125, 0., 125.);
-    h_clusWidthdVsChargeB = fs->make<TH2F>("clusWidthVsChargeB", ("Cluster width VS cluster charge per module in collection "+inTagB.encode()+";Cluster charge [ADC]; Cluster width [Number of strips]").c_str(), 125, 0., 20000., 125, 0., 125.);
+    h_clusWidthdVsChargeA = fs->make<TH2F>("clusWidthVsChargeA", ("Cluster width VS cluster charge per module in collection "+inTagA.encode()+";Cluster charge [ADC]; Cluster width [Number of strips]").c_str(), 75, 0., 20000., 75, 0., 125.);
+    h_clusWidthdVsChargeB = fs->make<TH2F>("clusWidthVsChargeB", ("Cluster width VS cluster charge per module in collection "+inTagB.encode()+";Cluster charge [ADC]; Cluster width [Number of strips]").c_str(), 75, 0., 20000., 75, 0., 125.);
 
     h_clusBaryA = fs->make<TH1F>("clusBaryA", ("Cluster barycenter in collection "+inTagA.encode()+";Strip number").c_str(), 128, 0., 6*128.);
     h_clusBaryB = fs->make<TH1F>("clusBaryB", ("Cluster barycenter in collection "+inTagB.encode()+";Strip number").c_str(), 128, 0., 6*128.);
@@ -75,17 +90,30 @@ SiStripClusterStatsDiff::SiStripClusterStatsDiff(const edm::ParameterSet& conf)
     tree->Branch("widthA", &widthA, "widthA/F");
     tree->Branch("widthB", &widthB, "widthB/F");
 
+    produces<std::vector<uint32_t>>("invalidDetIdClusters"); 
 }
 
-void SiStripClusterStatsDiff::analyze(const edm::Event& evt, const edm::EventSetup& eSetup)
+void SiStripClusterStatsDiff::produce(edm::Event& evt, const edm::EventSetup& eSetup)
 {
+    invalidDetIdClusters.clear();
+
     edm::Handle<edmNew::DetSetVector<SiStripCluster>> digisA;
     evt.getByToken(m_digiAtoken, digisA);
     edm::Handle<edmNew::DetSetVector<SiStripCluster>> digisB;
     evt.getByToken(m_digiBtoken, digisB);
 
+    bool is_excluded = false;
+
     for ( const auto& dsetA : *digisA ) {
         const auto i_dsetB = digisB->find(dsetA.id());
+
+        is_excluded = false;
+        // exclude potential detIds 
+        for (const auto& exclId: excludedDetId){
+            if (dsetA.id() == exclId) is_excluded = true;
+        }
+        if (is_excluded) continue;
+
         h_nClusA->Fill(dsetA.size());
         if ( digisB->end() != i_dsetB ) { // A and B: compare
             const auto& dsetB = *i_dsetB;
@@ -117,18 +145,32 @@ void SiStripClusterStatsDiff::analyze(const edm::Event& evt, const edm::EventSet
             h_clusBaryA  ->Fill(sumx/chg);
             h_clusVarA   ->Fill(std::sqrt(sumxsq*chg-sumx*sumx)/chg);
 
-            if ((chg>=10000 && chg<=12000) || (amps.size()>=35 && amps.size()<=60)){
-                detId = dsetA.id();
+            if ((chg>=invalidMinCharge && chg<=invalidMaxCharge) && (amps.size()>=invalidMinWidth && amps.size()<=invalidMaxWidth)){
+                // Fill tree 
+                detId = dsetA.detId();
                 n_event = evt.id().event();
                 chargeA = chg;
                 chargeB = 0;
                 widthA = amps.size();
                 widthB = 0;
                 tree->Fill();
+                // Save in object 
+                if (detectInvalidDetIds)
+                {
+                    invalidDetIdClusters.push_back(dsetA.detId());
+                }
             }
         } // End loop over clusters
     } // End loop over digisA
     for ( const auto& dsetB : *digisB ) {
+
+        // exclude potential detIds 
+        is_excluded = false;
+        for (const auto& exclId: excludedDetId){
+            if (dsetB.id() == exclId) is_excluded = true;
+        }
+        if (is_excluded) continue;
+
         h_nClusB->Fill(dsetB.size());
         const auto i_dsetA = digisA->find(dsetB.id());
         if ( digisA->end() == i_dsetA ) { // B\A
@@ -150,7 +192,8 @@ void SiStripClusterStatsDiff::analyze(const edm::Event& evt, const edm::EventSet
             h_clusBaryB  ->Fill(sumx/chg);
             h_clusVarB   ->Fill(std::sqrt(sumxsq*chg-sumx*sumx)/chg);
 
-             if ((chg>=10000 && chg<=12000) || (amps.size()>=35 && amps.size()<=60)){
+            if ((chg>=invalidMinCharge && chg<=invalidMaxCharge) && (amps.size()>=invalidMinWidth && amps.size()<=invalidMaxWidth)){
+                // Fill tree
                 detId = dsetB.id();
                 n_event = evt.id().event();
                 chargeA = 0;
@@ -158,8 +201,15 @@ void SiStripClusterStatsDiff::analyze(const edm::Event& evt, const edm::EventSet
                 widthA = 0;
                 widthB = amps.size();
                 tree->Fill();
+                // Save as object 
+               if (detectInvalidDetIds)
+               {
+                   invalidDetIdClusters.push_back(dsetB.detId());
+               }
             }
 
         } // End loop over clusters
     } // End loop over digisA 
+
+    evt.put(std::make_unique<std::vector<uint32_t>>(invalidDetIdClusters), "invalidDetIdClusters"); 
 }

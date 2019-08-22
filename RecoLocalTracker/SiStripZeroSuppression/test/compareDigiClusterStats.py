@@ -6,6 +6,7 @@ __author__ = "Pieter David <pieter.david@uclouvain.be>"
 __date__ = "22 September 2018"
 
 import os.path
+import sys
 import ROOT
 from matplotlib import pyplot as plt
 import tdrstyle
@@ -19,10 +20,10 @@ def addOverflows(histo):
     histo.SetBinContent(nB, histo.GetBinContent(nB)+histo.GetBinContent(nB+1))
 
 if __name__ == "__main__":
-    #name = "combinedRuns.root"
-    name = "diffhistos321779.root"
-    #name = "diffhistos321054.root"
-    hFile = ROOT.TFile.Open(name, "READ")
+    directory = '/afs/cern.ch/user/f/fbury/work/HybridStudy/'
+    name = sys.argv[1]
+    hFile = ROOT.TFile.Open(directory + name, "READ")
+    name = "Stats_"+name
     refSuffix = "B" # Classic ZS
     newSuffix = "A" # Hybrid ZS
     outpath = "comparisonPlots"
@@ -62,6 +63,7 @@ if __name__ == "__main__":
         hRef.SetStats(0)
         hRef.SetTitle(hTitle)
         hRef.SetTitleSize(14)
+        hRef.GetXaxis().SetLabelSize(0.03)
         hRef.Draw()
         hNew.Draw("same")
         legend = ROOT.TLegend(0.65,0.7,0.85,0.83)
@@ -98,20 +100,20 @@ if __name__ == "__main__":
 
         hRatio.SetTitle("")
 
-        hRatio.GetYaxis().SetTitle("Ratio")
+        hRatio.GetYaxis().SetTitle("Ratio hybrid/classic")
         hRatio.GetYaxis().SetNdivisions(505)
-        hRatio.GetYaxis().SetTitleSize(14)
+        hRatio.GetYaxis().SetTitleSize(18)
         hRatio.GetYaxis().SetTitleFont(43)
         hRatio.GetYaxis().SetTitleOffset(1.8)
         hRatio.GetYaxis().SetLabelFont(43)
         hRatio.GetYaxis().SetLabelSize(15)
 
         hRatio.GetXaxis().SetNdivisions(510)
-        hRatio.GetXaxis().SetTitleSize(14)
+        hRatio.GetXaxis().SetTitleSize(20)
         hRatio.GetXaxis().SetTitleFont(43)
         hRatio.GetXaxis().SetTitleOffset(4.)
         hRatio.GetXaxis().SetLabelFont(43)
-        hRatio.GetXaxis().SetLabelSize(15)
+        hRatio.GetXaxis().SetLabelSize(20)
     
         #canvas.Print(name.replace('.root',hName_n+'.pdf'))
         canvas.Print(name.replace('.root','.pdf'),'Title:'+hName_n)
@@ -164,30 +166,35 @@ if __name__ == "__main__":
         hNew = hFile.Get(hName+newSuffix)
 
         # Draw Ref #
-        canvas.SetRightMargin(0.2)
+        canvas.SetRightMargin(0.15)
         canvas.SetLogz()
         canvas.SetLogy(False)
         hRef.Draw("colz")
         hRef.GetZaxis().SetTitleOffset(1.6)
+        hRef.GetXaxis().SetLabelSize(0.03)
         canvas.Print(name.replace('.root','.pdf'),'Title:'+hName_n+'_classic')
         canvas.Clear()
         
         # Draw New #
-        canvas.SetRightMargin(0.2)
+        canvas.SetRightMargin(0.15)
         canvas.SetLogz()
         canvas.SetLogy(False)
         hNew.Draw("colz")
         hNew.GetZaxis().SetTitleOffset(1.6)
+        hNew.GetXaxis().SetLabelSize(0.03)
         canvas.Print(name.replace('.root','.pdf'),'Title:'+hName_n+'_hybrid')
         canvas.Clear()
 
         # Ratio #
-        canvas.SetRightMargin(0.2)
-        canvas.SetLogz(False)
+        canvas.SetRightMargin(0.15)
+        canvas.SetLogz(True)
         canvas.SetLogy(False)
         hRatio = hNew.Clone(hName+"Ratio")
         hRatio.Sumw2()
         hRatio.Divide(hRef)
+        hRatio.SetTitle(hTitle+': ratio hybrid/classic')
+        hRatio.GetXaxis().SetLabelSize(0.03)
+        #hRatio.SetMaximum(3)
         hRatio.Draw("colz")
         canvas.Print(name.replace('.root','.pdf'),'Title:'+hName_n+'_ratio')
         canvas.Clear()

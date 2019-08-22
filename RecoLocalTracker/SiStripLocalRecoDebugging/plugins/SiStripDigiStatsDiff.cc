@@ -1,4 +1,4 @@
-#include "FWCore/Framework/interface/stream/EDAnalyzer.h"
+#include "FWCore/Framework/interface/stream/EDProducer.h"
 #include "FWCore/Framework/interface/Frameworkfwd.h"
 #include "FWCore/Utilities/interface/InputTag.h"
 
@@ -8,12 +8,13 @@
 #include "CommonTools/UtilAlgos/interface/TFileService.h"
 #include "TH2.h"
 #include "TTree.h"
+#include <iostream>
 
-class SiStripDigiStatsDiff : public edm::stream::EDAnalyzer<>
+class SiStripDigiStatsDiff : public edm::stream::EDProducer<>
 {
     public:
         SiStripDigiStatsDiff(const edm::ParameterSet& conf);
-        void analyze(const edm::Event& evt, const edm::EventSetup& eSetup) override;
+        void produce(edm::Event& evt, const edm::EventSetup& eSetup) override;
     private:
         edm::EDGetTokenT<edm::DetSetVector<SiStripDigi>> m_digiAtoken;
         edm::EDGetTokenT<edm::DetSetVector<SiStripDigi>> m_digiBtoken;
@@ -21,11 +22,16 @@ class SiStripDigiStatsDiff : public edm::stream::EDAnalyzer<>
         TH2F* h_nDigis2D;
         TTree *tree;
 
-        uint16_t detId;
-        uint16_t n_event;
-        uint16_t detA_digis;
-        uint16_t detB_digis;
+        int detId;
+        int n_event;
+        int detA_digis;
+        int detB_digis;
 
+        bool detectInvalidDetIds;
+        double invalidMinDigi = 0;
+        double invalidMaxDigi = 10000;
+        std::vector<uint32_t> invalidDetIdDigis;
+        std::vector<uint32_t> excludedDetId;
 };
 
 #include "FWCore/Framework/interface/MakerMacros.h"
@@ -35,7 +41,11 @@ DEFINE_FWK_MODULE(SiStripDigiStatsDiff);
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 #include "FWCore/MessageLogger/interface/MessageLogger.h"
 
-SiStripDigiStatsDiff::SiStripDigiStatsDiff(const edm::ParameterSet& conf)
+SiStripDigiStatsDiff::SiStripDigiStatsDiff(const edm::ParameterSet& conf):
+    detectInvalidDetIds(conf.getParameter<bool>("detectInvalidDetIds")),
+    invalidMinDigi(conf.getParameter<double>("invalidMinDigi")),
+    invalidMaxDigi(conf.getParameter<double>("invalidMaxDigi")),
+    excludedDetId(conf.getParameter<std::vector<uint32_t>>("excludedDetId"))
 {
     const auto inTagA = conf.getParameter<edm::InputTag>("A");
     m_digiAtoken = consumes<edm::DetSetVector<SiStripDigi>>(inTagA);
@@ -55,16 +65,30 @@ SiStripDigiStatsDiff::SiStripDigiStatsDiff(const edm::ParameterSet& conf)
     tree->Branch("detA_digis", &detA_digis, "detA_digis/i");
     tree->Branch("detB_digis", &detB_digis, "detB_digis/i");
 
+    produces<std::vector<uint32_t>>("invalidDetIdDigis"); 
+
 }
 
-void SiStripDigiStatsDiff::analyze(const edm::Event& evt, const edm::EventSetup& eSetup)
+void SiStripDigiStatsDiff::produce(edm::Event& evt, const edm::EventSetup& eSetup)
 {
+    invalidDetIdDigis.clear();
+    
     edm::Handle<edm::DetSetVector<SiStripDigi>> digisA;
     evt.getByToken(m_digiAtoken, digisA);
     edm::Handle<edm::DetSetVector<SiStripDigi>> digisB;
     evt.getByToken(m_digiBtoken, digisB);
     //edm::LogInfo("SiStripDigiStatsDiff") << "Loaded digis: " << digisA->size() << " (A) and " << digisB->size() << " (B)";
+
+    bool is_excluded = false;
+
     for ( const auto& dsetA : *digisA ) {
+        // exclude potential detIds 
+        is_excluded = false;
+        for (const auto& exclId: excludedDetId){
+            if (dsetA.detId() == exclId) is_excluded = true;
+        }
+        if (is_excluded) continue;
+
         h_nDigisA->Fill(dsetA.size());
         const auto i_dsetB = digisB->find(dsetA.id);
         if ( digisB->end() != i_dsetB ) { // A and B: compare
@@ -72,13 +96,18 @@ void SiStripDigiStatsDiff::analyze(const edm::Event& evt, const edm::EventSetup&
             h_nDigisDiff->Fill(dsetB.size()-dsetA.size());
             h_nDigisRelDiff->Fill(.5*(dsetB.size()-dsetA.size())/(dsetB.size()+dsetA.size()));
             h_nDigis2D->Fill(dsetA.size(),dsetB.size());
-            if (abs(dsetA.size()-dsetB.size())>50){
+            if (abs(dsetA.size()-dsetB.size())>invalidMinDigi and abs(dsetA.size()-dsetB.size())<invalidMaxDigi){
                // Fill tree 
-               detId = dsetA.id;
+               detId = dsetA.detId();
                n_event = evt.id().event(); 
                detA_digis = dsetA.size();
                detB_digis = dsetB.size();
                tree->Fill();
+                // Save in object 
+               if (detectInvalidDetIds)
+               {
+                   invalidDetIdDigis.push_back(dsetA.detId());
+               }
             }   
 
         } else { // A\B
@@ -88,6 +117,13 @@ void SiStripDigiStatsDiff::analyze(const edm::Event& evt, const edm::EventSetup&
         }
     }
     for ( const auto& dsetB : *digisB ) {
+        // exclude potential detIds 
+        is_excluded = false;
+        for (const auto& exclId: excludedDetId){
+            if (dsetB.detId() == exclId) is_excluded = true;
+        }
+        if (is_excluded) continue;
+
         h_nDigisB->Fill(dsetB.size());
         const auto i_dsetA = digisA->find(dsetB.id);
         if ( digisA->end() == i_dsetA ) { // B\A
@@ -95,4 +131,5 @@ void SiStripDigiStatsDiff::analyze(const edm::Event& evt, const edm::EventSetup&
             h_nDigisRelDiff->Fill(1.);
         }
     }
+    evt.put(std::make_unique<std::vector<uint32_t>>(invalidDetIdDigis), "invalidDetIdDigis"); 
 }

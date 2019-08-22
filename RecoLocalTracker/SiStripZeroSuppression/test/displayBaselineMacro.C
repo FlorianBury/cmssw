@@ -22,9 +22,12 @@
 //#include "iterator"
 #include "iterator"
 
+bool sortbysec(const pair<int,int> &a, const pair<int,int> &b) 
+{ 
+    return (a.second > b.second); 
+} 
 
-
-void  displayBaselineMacro(TString file){
+void  displayBaselineMacro(TString file, int max_plots = -1, int min_occurences = 1){
     gStyle->SetOptStat(0);
     gROOT->SetBatch(true);
     /* Select particular detId and event numbers */
@@ -48,31 +51,32 @@ void  displayBaselineMacro(TString file){
     //Selection.push_back(std::make_pair(23,369138262)); // TEST, NOT A BAD BASELINE
     //Selection.push_back(std::make_pair(23,369154572)); // TEST, NOT A BAD BASELINE
     //Selection.push_back(std::make_pair(23,369175140)); // TEST, NOT A BAD BASELINE
-    Selection.push_back(std::make_pair(68,369120358)); // TEST, NOT A BAD BASELINE
-    Selection.push_back(std::make_pair(23,369120637)); // TEST, NOT A BAD BASELINE
-    Selection.push_back(std::make_pair(24,436228793)); // BAD BASELINE run 321779
-    Selection.push_back(std::make_pair(67,436245750)); // BAD BASELINE run 321779
-    Selection.push_back(std::make_pair(71,470050086)); // BAD BASELINE run 321779
-    Selection.push_back(std::make_pair(112,369125510)); // BAD BASELINE run 321779
-    Selection.push_back(std::make_pair(107,369124773)); // BAD BASELINE run 321779
-    Selection.push_back(std::make_pair(650,470422954)); // BAD BASELINE run 321779
-    Selection.push_back(std::make_pair(156,369121390)); // BAD BASELINE run 321779
-    Selection.push_back(std::make_pair(201,369158484)); // BAD BASELINE run 321779
-    Selection.push_back(std::make_pair(206,402666289)); // BAD BASELINE run 321779
-    Selection.push_back(std::make_pair(251,369141845)); // BAD BASELINE run 321779
-    Selection.push_back(std::make_pair(301,369120421)); // BAD BASELINE run 321779
+    //Selection.push_back(std::make_pair(68,369120358)); // TEST, NOT A BAD BASELINE
+    //Selection.push_back(std::make_pair(23,369120637)); // TEST, NOT A BAD BASELINE
+    //Selection.push_back(std::make_pair(24,436228793)); // BAD BASELINE run 321779
+    //Selection.push_back(std::make_pair(67,436245750)); // BAD BASELINE run 321779
+    //Selection.push_back(std::make_pair(71,470050086)); // BAD BASELINE run 321779
+    //Selection.push_back(std::make_pair(112,369125510)); // BAD BASELINE run 321779
+    //Selection.push_back(std::make_pair(107,369124773)); // BAD BASELINE run 321779
+    //Selection.push_back(std::make_pair(650,470422954)); // BAD BASELINE run 321779
+    //Selection.push_back(std::make_pair(156,369121390)); // BAD BASELINE run 321779
+    //Selection.push_back(std::make_pair(201,369158484)); // BAD BASELINE run 321779
+    //Selection.push_back(std::make_pair(206,402666289)); // BAD BASELINE run 321779
+    //Selection.push_back(std::make_pair(251,369141845)); // BAD BASELINE run 321779
+    //Selection.push_back(std::make_pair(301,369120421)); // BAD BASELINE run 321779
 
-    std::vector<bool> check(Selection.size(),false);
+    //std::vector<bool> check(Selection.size(),false);
+    std::vector<pair<int,int>> occurences; // pair (detId, number of occurences)
 
     /* Open file and generate canvas */
     TFile *f;//, *fo;
-    TString BaseDir;
+    TString BaseDir = "/afs/cern.ch/user/f/fbury/work/HybridStudy/";
     TString dir_ZS1[3];
     TString dir_ZS2[3];
     TString fullPath, title, subDet, genSubDet;
     TCanvas *C;
     C = new TCanvas();
-    f = new TFile(file);
+    f = new TFile(BaseDir+file);
     dir_ZS1[0]="hybridBaselineAnalyzer/ProcessedRawDigis"; // OK
     dir_ZS1[1]="hybridBaselineAnalyzer/Baseline";
     dir_ZS1[2]="hybridBaselineAnalyzer/Clusters";
@@ -89,52 +93,68 @@ void  displayBaselineMacro(TString file){
     TKey *key;
     int objcounter=1;
     
+    TString output = file.Replace(file.Length()-5,5,".pdf");
     /* Start canvas printing */
-    C->Print("Baseline.pdf[");
+    C->Print("Baseline_"+output+"[");
 
     /* Loop over histograms */
     while ((key = (TKey*)nextkey())) {
             TObject *obj = key->ReadObj();
 
+            /* Get the event number, detid and run info */
+            TString name  = obj->GetName();
+
+            int n_event = -1;
+            int n_run = -1;
+            int n_detid = -1;
+
+            TPRegexp re_event("ev:\\d+");        
+            TString event = name(re_event);
+            event.Replace(0,3,"");
+            n_event = event.Atoi();
+
+            TPRegexp re_run("run:\\d+");        
+            TString run = name(re_run);
+            run.Replace(0,4,"");
+            n_run = run.Atoi();
+
+            TPRegexp re_detid("Id:\\d+");        
+            TString detid = name(re_detid);
+            detid.Replace(0,3,"");
+            n_detid = detid.Atoi();
+
+            /* Fill occurences vector */
+            for(auto & it : occurences){ // Loop over already seen detIds
+                if (it.first == n_detid){
+                    it.second ++;
+                    break;
+                }
+            }
+            occurences.push_back(std::make_pair(n_detid,1)); // If not found, create new entry
+
+            /* If max plotting encountered **/
+            if (max_plots != -1 && objcounter>max_plots) continue;
+            
+            /* TH1 plots */
             if ( obj->IsA()->InheritsFrom( "TH1" ) ) {
                 /* Loop over selection */
                 bool found = false;
-                int n_event = -1;
-                int n_run = -1;
-                int n_detid = -1;
                 int idx = 0;
-                for (auto const& it : Selection)
-                {
-                    /* Get the event number, detid and run info */
-                    TString name  = obj->GetName();
-
-                    TPRegexp re_event("ev:\\d+");        
-                    TString event = name(re_event);
-                    event.Replace(0,3,"");
-                    n_event = event.Atoi();
-
-                    TPRegexp re_run("run:\\d+");        
-                    TString run = name(re_run);
-                    run.Replace(0,4,"");
-                    n_run = run.Atoi();
-
-                    TPRegexp re_detid("Id:\\d+");        
-                    TString detid = name(re_detid);
-                    detid.Replace(0,3,"");
-                    n_detid = detid.Atoi();
-                    //std::cout<<n_event<<" "<<n_detid<<" "<<n_run<<std::endl;
-                    if (it.first==n_event && it.second==n_detid) 
-                    {
-                        found = true;
-                        check[idx] = true;
-                        break;
-                    }
-                    idx++;
-                }
-                if (!found) continue;
+                //for (auto const& it : Selection)
+                //{
+                                //    //std::cout<<n_event<<" "<<n_detid<<" "<<n_run<<std::endl;
+                //    if (it.first==n_event && it.second==n_detid) 
+                //    {
+                //        found = true;
+                //        check[idx] = true;
+                //        break;
+                //    }
+                //    idx++;
+                //}
+                //if (!found) continue;
                 TString title;
                 title.Form("Run %d, Event %d, DetId %d",n_run,n_event,n_detid);
-                std::cout<<title<<std::endl;
+                std::cout<<title<<" obj number "<<objcounter<<std::endl;
 
                 //std::cout << "Found object n: " << objcounter << " Name: " << obj->GetName() << " Title: " << obj->GetTitle()<< std::endl;
                 //std::cout<<n_event<<" "<<n_detid<<" "<<n_run<<std::endl;
@@ -146,7 +166,7 @@ void  displayBaselineMacro(TString file){
                 /* ZS1 histograms */
                 TH1F* h = (TH1F*)key->ReadObj();
 
-                TLegend leg(0.5,0.7,0.9,0.9);
+                TLegend leg(0.55,0.7,0.9,0.9);
                 leg.SetHeader("Legend","C");
                 //leg.AddEntry(h,"VR - Ped - apvCM_{mean}","l");
                 leg.AddEntry(h,"Processed raw digis","l");
@@ -224,17 +244,29 @@ void  displayBaselineMacro(TString file){
                 C->Update();
                 //	fo->cd();
                 //	C->Write();
-                C->Print("Baseline.pdf","Title:"+title);
+                C->Print("Baseline_"+output,"Title:"+title);
                 //C->SaveAs(TString("img/")+obj->GetName()+TString(".png"));
 
 
             }
     }
-    C->Print("Baseline.pdf");
-    C->Print("Baseline.pdf]");
-    for (int i=0; i<Selection.size();i++)
-    {
-        if (!check[i])
-            std::cout<<"[WARNING] Event "<<Selection[i].first<<", detId "<<Selection[i].second<<" were not found"<<std::endl;
+    C->Print("Baseline_"+output);
+    C->Print("Baseline_"+output+"]");
+    //for (int i=0; i<Selection.size();i++)
+    //{
+    //    if (!check[i])
+    //        std::cout<<"[WARNING] Event "<<Selection[i].first<<", detId "<<Selection[i].second<<" were not found"<<std::endl;
+    //}
+
+    /* Sort occurences */
+    std::sort(occurences.begin(),occurences.end(),sortbysec); // sort according to number of occurences
+    /* Print occurences */
+    int total_occurences = 0;
+    for(auto & it : occurences){ // Loop over already seen detIds
+        if (it.second >= min_occurences)
+            std::cout<<"DetId "<<it.first<<" showed up "<<it.second<<" times"<<std::endl;
+        total_occurences += it.second;
     }
+    std::cout<<"\nThe detId that occured less than "<<min_occurences<<" times were ignored"<<std::endl;
+    std::cout<<"\nTotal occurences : "<<total_occurences<<std::endl;
 }

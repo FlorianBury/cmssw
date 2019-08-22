@@ -23,29 +23,14 @@ process.options = cms.untracked.PSet(
 )
 
 process.maxEvents = cms.untracked.PSet(
-    input = cms.untracked.int32(10) 
+    input = cms.untracked.int32(-1) 
 )
 
 # Input source
 process.source = cms.Source("PoolSource",
-    fileNames = cms.untracked.vstring('file:/afs/cern.ch/user/f/fbury/work/HybridStudy/SpyRawToDigis321054.root'),
-    #fileNames = cms.untracked.vstring('file:/afs/cern.ch/user/f/fbury/work/HybridStudy/SpyRawToDigis321779.root'),
-    #eventsToProcess = cms.untracked.VEventRange('321779:23-321779:23',  #GOOD
-    #                                            '321779:68-321779:68',  #GOOD 
-    #                                            '321779:202-321779:202',#GOOD
-    #                                            '321779:300-321779:300',#GOOD
-    #                                            '321779:24-321779:24',  #BAD
-    #                                            '321779:67-321779:67',  #BAD
-    #                                            '321779:71-321779:71',  #BAD
-    #                                            '321779:112-321779:112',#BAD
-    #                                            '321779:107-321779:107',#BAD
-    #                                            '321779:650-321779:650',#BAD
-    #                                            '321779:156-321779:156',#BAD
-    #                                            '321779:201-321779:201',#BAD
-    #                                            '321779:206-321779:206',#BAD
-    #                                            '321779:251-321779:251',#BAD
-    #                                            '321779:301-321779:301',#BAD
-    #                                           ),
+    #fileNames = cms.untracked.vstring('file:/afs/cern.ch/user/f/fbury/work/HybridStudy/SpyRawToDigis321054.root'),
+    fileNames = cms.untracked.vstring('file:/afs/cern.ch/user/f/fbury/work/HybridStudy/SpyRawToDigis321779.root'),
+    #eventsToProcess = cms.untracked.VEventRange('321779:23-321779:23'),
 )
 
 process.options = cms.untracked.PSet(
@@ -66,8 +51,8 @@ process.RAWoutput = cms.OutputModule("PoolOutputModule",
         dataTier = cms.untracked.string('RAW'),
         filterName = cms.untracked.string('')
     ),
-    fileName = cms.untracked.string('~/work/HybridStudy/whatever321054.root'),
-    #fileName = cms.untracked.string('~/work/HybridStudy/whatever321779.root'),
+    #fileName = cms.untracked.string('~/work/HybridStudy/whatever321054.root'),
+    fileName = cms.untracked.string('~/work/HybridStudy/whatever321779_s.root'),
     #outputCommands = process.RAWEventContent.outputCommands,
     outputCommands = cms.untracked.vstring("drop *"),
     splitLevel = cms.untracked.int32(0)
@@ -155,6 +140,16 @@ process.classicAna = cms.EDAnalyzer("SiStripHybridFormatAnalyzer",
 )   
 
 ## Comparison 
+excludedDetId = cms.vuint32(369174804,
+                            369137006, 
+                            369140942,
+                            369141870,
+                            369138237,
+                            402674446,
+                            470111728,
+                            369174808,
+                            369141806)
+
 process.diffRawZS = cms.EDAnalyzer("SiStripDigiDiff",
         A = cms.InputTag("zsHybrid", "VirginRaw"),
         B = cms.InputTag("zsClassic", "VirginRaw"),
@@ -163,18 +158,28 @@ process.diffRawZS = cms.EDAnalyzer("SiStripDigiDiff",
         TopBitsToIgnore = cms.uint32(0),
         BottomBitsToIgnore = cms.uint32(1),
         )
-process.digiStatDiff = cms.EDAnalyzer("SiStripDigiStatsDiff",
+process.digiStatDiff = cms.EDProducer("SiStripDigiStatsDiff",
         A = cms.InputTag("zsHybrid", "VirginRaw"),
         B = cms.InputTag("zsClassic", "VirginRaw"),
+        detectInvalidDetIds=cms.bool(False), 
+        invalidMinDigi=cms.double(50),
+        invalidMaxDigi=cms.double(60),
+        excludedDetId = excludedDetId,
         )
 
-## CLusterizer 
+## Clusterizer 
 process.load("RecoLocalTracker.SiStripClusterizer.SiStripClusterizer_RealData_cfi")
 process.clusterizeZS1 = process.siStripClusters.clone(DigiProducersList=cms.VInputTag(cms.InputTag("zsHybrid", "VirginRaw")))
 process.clusterizeZS2 = process.siStripClusters.clone(DigiProducersList=cms.VInputTag(cms.InputTag("zsClassic", "VirginRaw")))
-process.clusterStatDiff = cms.EDAnalyzer("SiStripClusterStatsDiff",
+process.clusterStatDiff = cms.EDProducer("SiStripClusterStatsDiff",
         A = cms.InputTag("clusterizeZS1"),
         B = cms.InputTag("clusterizeZS2"),
+        detectInvalidDetIds=cms.bool(True), 
+        invalidMinCharge=cms.double(0),
+        invalidMaxCharge=cms.double(1000),
+        invalidMinWidth=cms.double(30),
+        invalidMaxWidth=cms.double(40),
+        excludedDetId = excludedDetId,
         )
 
 
@@ -183,6 +188,7 @@ process.load("RecoLocalTracker.SiStripZeroSuppression.SiStripBaselineAnalyzer_cf
 #from RecoLocalTracker.SiStripZeroSuppression.SiStripBaselineAnalyzer_cfi import SiStripBaselineAnalyzer
 
 process.baselineAnalyzerZS1 = process.SiStripBaselineAnalyzer.clone(
+    nModuletoDisplay = cms.uint32(100000000),
     plotPedestals = cms.bool(True), ## should work in any case
     plotRawDigi = cms.bool(True), ## will plot raw digis, and do ZS on them (customize by setting Algorithms, like for the ZS)
     plotAPVCM = cms.bool(True), ## if True, pass a CM tag to 'srcAPVCM' (edm::DetSetVector<SiStripProcessedRawDigi>, the ZS will store one under APVCM+tag if storeCM is set to true)
@@ -190,15 +196,18 @@ process.baselineAnalyzerZS1 = process.SiStripBaselineAnalyzer.clone(
     plotBaselinePoints = cms.bool(True), ## set to true to plot the baseline points, also pass srcBaselinePoints then (from ZS with produceBaselinePoints=True, under BADAPVBASELINEPOINTS+tag)
     plotDigis = cms.bool(False), ## does not do anything
     plotClusters = cms.bool(True), ## would get the clusters from siStripClusters (hardcoded), so you'd need to change the code to add those plots (but it's independent of all the rest)
+    useInvalidDetIds = cms.bool(True), ## Get the invalid detIDs from SiStripDigiStatsDiff and SiStripClusterStatsDiff : enable either invalidDetIdDigis or invalidDetIdClusters  Input Tags
 
     srcProcessedRawDigi = cms.InputTag('zsHybridEmu','VirginRaw'), ## here pass VR (edm::DetSetVector<SiStripRawDigi>), 'processed' is confusing but it's actually VR
     srcAPVCM  =  cms.InputTag('zsHybridEmu','APVCMVirginRaw'),
     srcBaseline =  cms.InputTag('zsHybridEmu','BADAPVBASELINEVirginRaw'),
     srcClusters = cms.InputTag('clusterizeZS1',''),
-
+    invalidDetIdDigis = cms.InputTag('digiStatDiff','invalidDetIdDigis'),
+    invalidDetIdClusters = cms.InputTag('clusterStatDiff','invalidDetIdClusters'),
     Algorithms = algo_zsHybridEmu,
 )
 process.baselineAnalyzerZS2 = process.SiStripBaselineAnalyzer.clone(
+    nModuletoDisplay = cms.uint32(100000000),
     plotPedestals = cms.bool(True), ## should work in any case
     plotRawDigi = cms.bool(True), ## will plot raw digis, and do ZS on them (customize by setting Algorithms, like for the ZS)
     plotAPVCM = cms.bool(True), ## if True, pass a CM tag to 'srcAPVCM' (edm::DetSetVector<SiStripProcessedRawDigi>, the ZS will store one under APVCM+tag if storeCM is set to true)
@@ -206,12 +215,14 @@ process.baselineAnalyzerZS2 = process.SiStripBaselineAnalyzer.clone(
     plotBaselinePoints = cms.bool(True), ## set to true to plot the baseline points, also pass srcBaselinePoints then (from ZS with produceBaselinePoints=True, under BADAPVBASELINEPOINTS+tag)
     plotDigis = cms.bool(False), ## does not do anything
     plotClusters = cms.bool(True), ## would get the clusters from siStripClusters (hardcoded), so you'd need to change the code to add those plots (but it's independent of all the rest)
+    useInvalidDetIds = cms.bool(True), ## Get the invalid detIDs from SiStripDigiStatsDiff and SiStripClusterStatsDiff : enable either invalidDetIdDigis or invalidDetIdClusters  Input Tags
 
     srcProcessedRawDigi = cms.InputTag('zsClassic','VirginRaw'), ## here pass VR (edm::DetSetVector<SiStripRawDigi>), 'processed' is confusing but it's actually VR
     srcAPVCM  =  cms.InputTag('zsClassic','APVCMVirginRaw'),
     srcBaseline =  cms.InputTag('zsClassic','BADAPVBASELINEVirginRaw'),
     srcClusters = cms.InputTag('clusterizeZS2',''),
-
+    invalidDetIdDigis = cms.InputTag('digiStatDiff','invalidDetIdDigis'),
+    invalidDetIdClusters = cms.InputTag('clusterStatDiff','invalidDetIdClusters'),
     Algorithms = algo_zsClassic,
 )
 
@@ -229,6 +240,7 @@ process.hybridBaselineAnalyzer = cms.EDAnalyzer("SiStripHybridBaselineAnalyzer",
     plotBaselinePoints = cms.bool(True), ## set to true to plot the baseline points, also pass srcBaselinePoints then (from ZS with produceBaselinePoints=True, under BADAPVBASELINEPOINTS+tag)
     plotDigis = cms.bool(False), ## does not do anything
     plotClusters = cms.bool(True), ## would get the clusters from siStripClusters (hardcoded), so you'd need to change the code to add those plots (but it's independent of all the rest)
+    useInvalidDetIds = cms.bool(True), ## Get the invalid detIDs from SiStripDigiStatsDiff and SiStripClusterStatsDiff : enable either invalidDetIdDigis or invalidDetIdClusters  Input Tags
 
     srcVirginRawDigi = inputVR, ## here pass VR (edm::DetSetVector<SiStripRawDigi>), 'processed' is confusing but it's actually VR
     srcZSVirginRawDigi = cms.InputTag('zsHybridEmu','VirginRaw'), ## here pass VR (edm::DetSetVector<SiStripRawDigi>), 'processed' is confusing but it's actually VR
@@ -238,7 +250,8 @@ process.hybridBaselineAnalyzer = cms.EDAnalyzer("SiStripHybridBaselineAnalyzer",
     srcBaselinePoints =  cms.InputTag('zsHybridEmu','BADAPVBASELINEPOINTSVirginRaw'),
     srcBaselinePointsH =  cms.InputTag('zsHybrid','BADAPVBASELINEPOINTSVirginRaw'),
     srcClusters = cms.InputTag('clusterizeZS1',''),
-
+    invalidDetIdDigis = cms.InputTag('digiStatDiff','invalidDetIdDigis'),
+    invalidDetIdClusters = cms.InputTag('clusterStatDiff','invalidDetIdClusters'),
     Algorithms = algo_zsHybridEmu,
 )
 
@@ -273,14 +286,15 @@ process.load("FWCore.Modules.printContent_cfi")
 process.DigiToRawZS = cms.Sequence(
         process.zsHybridEmu *  process.zsHybrid * process.zsClassic
         # Analyze #
-        * process.diffRawZS * process.digiStatDiff
+        #* process.diffRawZS 
+        * process.digiStatDiff
         * process.clusterizeZS1 * process.clusterizeZS2
         * process.clusterStatDiff
         # Baseline 
         * process.baselineAnalyzerZS1 * process.baselineAnalyzerZS2
         * process.hybridBaselineAnalyzer
-        * process.baselineComparator
-        * process.hybridAna * process.classicAna
+        #* process.baselineComparator
+        #* process.hybridAna * process.classicAna
         # RecHit 
         #* process.recHitZS1 * process.recHitZS2
         # read RecHit #
@@ -289,8 +303,8 @@ process.DigiToRawZS = cms.Sequence(
         #* process.printContent
         )
 process.TFileService = cms.Service("TFileService",
-        fileName = cms.string("diffhistos321054.root"),
-        #fileName = cms.string("diffhistos321779.root"),
+        #fileName = cms.string("/afs/cern.ch/user/f/fbury/work/HybridStudy/diffhistos321054.root"),
+        fileName = cms.string("/afs/cern.ch/user/f/fbury/work/HybridStudy/diffhistos321779_IdClusters_width30To40_charge0To1000_without_moreDetiD.root"),
         closeFileFast = cms.untracked.bool(True),
         )
 
@@ -336,4 +350,4 @@ process = customiseEarlyDelete(process)
 #                                         ),
 #    categories=cms.untracked.vstring("SiStripZeroSuppression", "SiStripDigiDiff")
 #    )
-
+#
