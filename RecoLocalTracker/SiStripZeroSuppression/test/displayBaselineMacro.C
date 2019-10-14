@@ -19,15 +19,19 @@
 #include "vector"
 #include "math.h"
 #include "map"
-//#include "iterator"
 #include "iterator"
+
+/* Load TrackerTopology */
+#include "/cvmfs/cms.cern.ch/slc7_amd64_gcc700/cms/cmssw/CMSSW_10_6_0/src/CalibTracker/StandaloneTrackerTopology/interface/StandaloneTrackerTopology.h"
+
+//gSystem->Load("libCalibTrackerStandaloneTrackerTopology.so") -> TO be used when loading root
 
 bool sortbysec(const pair<int,int> &a, const pair<int,int> &b) 
 { 
     return (a.second > b.second); 
 } 
 
-void  displayBaselineMacro(TString file, int max_plots = -1, int min_occurences = 1){
+void  displayBaselineMacro(TString file, int max_plots = -1, int min_occurences = 1, bool print = true){
     gStyle->SetOptStat(0);
     gROOT->SetBatch(true);
     /* Select particular detId and event numbers */
@@ -95,7 +99,10 @@ void  displayBaselineMacro(TString file, int max_plots = -1, int min_occurences 
     
     TString output = file.Replace(file.Length()-5,5,".pdf");
     /* Start canvas printing */
-    C->Print("Baseline_"+output+"[");
+    if (print) C->Print("Baseline_"+output+"[");
+
+    /* Load tracker topo */
+    const auto myTopo = StandaloneTrackerTopology::fromTrackerParametersXMLFile("/cvmfs/cms.cern.ch/slc7_amd64_gcc700/cms/cmssw/CMSSW_10_6_2/src/Geometry/TrackerCommonData/data/PhaseI/trackerParameters.xml");
 
     /* Loop over histograms */
     while ((key = (TKey*)nextkey())) {
@@ -122,6 +129,11 @@ void  displayBaselineMacro(TString file, int max_plots = -1, int min_occurences 
             TString detid = name(re_detid);
             detid.Replace(0,3,"");
             n_detid = detid.Atoi();
+
+            TString layer = myTopo.print(n_detid);
+
+            TPRegexp re = TPRegexp("[A-Za-z\\d \\-\\+]+?(?=\\s+Module)");
+            layer = layer(re);
 
             /* Fill occurences vector */
             for(auto & it : occurences){ // Loop over already seen detIds
@@ -154,6 +166,8 @@ void  displayBaselineMacro(TString file, int max_plots = -1, int min_occurences 
                 //if (!found) continue;
                 TString title;
                 title.Form("Run %d, Event %d, DetId %d",n_run,n_event,n_detid);
+                //title = "#splitline{"+title+"}{"+layer+"}";
+                title += " ("+layer+")";
                 std::cout<<title<<" obj number "<<objcounter<<std::endl;
 
                 //std::cout << "Found object n: " << objcounter << " Name: " << obj->GetName() << " Title: " << obj->GetTitle()<< std::endl;
@@ -244,14 +258,14 @@ void  displayBaselineMacro(TString file, int max_plots = -1, int min_occurences 
                 C->Update();
                 //	fo->cd();
                 //	C->Write();
-                C->Print("Baseline_"+output,"Title:"+title);
+                if (print) C->Print("Baseline_"+output,"Title:"+title);
                 //C->SaveAs(TString("img/")+obj->GetName()+TString(".png"));
 
 
             }
     }
-    C->Print("Baseline_"+output);
-    C->Print("Baseline_"+output+"]");
+    if (print) C->Print("Baseline_"+output);
+    if (print) C->Print("Baseline_"+output+"]");
     //for (int i=0; i<Selection.size();i++)
     //{
     //    if (!check[i])

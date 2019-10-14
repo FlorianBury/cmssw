@@ -8,13 +8,15 @@ process = cms.Process('HYBRID')#,eras.Run2_HI)
 process.load('Configuration.StandardSequences.Services_cff')
 process.load('SimGeneral.HepPDTESSource.pythiapdt_cfi')
 process.load('FWCore.MessageService.MessageLogger_cfi')
-process.load('Configuration.EventContent.EventContentHeavyIons_cff')
+#process.load('Configuration.EventContent.EventContentHeavyIons_cff')
+process.load("Configuration.EventContent.EventContent_cff")
 process.load('Configuration.StandardSequences.GeometryRecoDB_cff')
 process.load('Configuration.StandardSequences.MagneticField_AutoFromDBCurrent_cff')
 #process.load('Configuration.StandardSequences.RawToDigi_Data_cff')
 ###process.load('Configuration.StandardSequences.DigiToRaw_Repack_cff')
 process.load('Configuration.StandardSequences.EndOfProcess_cff')
 process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
+process.load("RecoVertex.BeamSpotProducer.BeamSpot_cff")
 
 process.options = cms.untracked.PSet(
     wantSummary = cms.untracked.bool(True),
@@ -23,13 +25,32 @@ process.options = cms.untracked.PSet(
 )
 
 process.maxEvents = cms.untracked.PSet(
-    input = cms.untracked.int32(-1) 
+    input = cms.untracked.int32(1) 
 )
 
 # Input source
 process.source = cms.Source("PoolSource",
     #fileNames = cms.untracked.vstring('file:/afs/cern.ch/user/f/fbury/work/HybridStudy/SpyRawToDigis321054.root'),
-    fileNames = cms.untracked.vstring('file:/afs/cern.ch/user/f/fbury/work/HybridStudy/SpyRawToDigis321779.root'),
+    fileNames = cms.untracked.vstring(
+        'file:/afs/cern.ch/user/f/fbury/eos/HybridStudy/SpyRawToDigis321054-0-321054-500.root',
+        'file:/afs/cern.ch/user/f/fbury/eos/HybridStudy/SpyRawToDigis321054-1001-321054-1500.root', 
+        'file:/afs/cern.ch/user/f/fbury/eos/HybridStudy/SpyRawToDigis321054-1501-321054-2000.root',
+        'file:/afs/cern.ch/user/f/fbury/eos/HybridStudy/SpyRawToDigis321054-2501-321054-3000.root',
+        'file:/afs/cern.ch/user/f/fbury/eos/HybridStudy/SpyRawToDigis321054-3001-321054-3500.root',
+        'file:/afs/cern.ch/user/f/fbury/eos/HybridStudy/SpyRawToDigis321054-3501-321054-4000.root',
+        'file:/afs/cern.ch/user/f/fbury/eos/HybridStudy/SpyRawToDigis321054-4001-321054-4500.root',
+        'file:/afs/cern.ch/user/f/fbury/eos/HybridStudy/SpyRawToDigis321054-4501-321054-5000.root',
+        'file:/afs/cern.ch/user/f/fbury/eos/HybridStudy/SpyRawToDigis321054-5001-321054-5500.root',
+        'file:/afs/cern.ch/user/f/fbury/eos/HybridStudy/SpyRawToDigis321054-501-321054-1000.root',
+        'file:/afs/cern.ch/user/f/fbury/eos/HybridStudy/SpyRawToDigis321054-5501-321054-6000.root',
+        'file:/afs/cern.ch/user/f/fbury/eos/HybridStudy/SpyRawToDigis321054-6001-321054-6500.root',
+        'file:/afs/cern.ch/user/f/fbury/eos/HybridStudy/SpyRawToDigis321054-6501-321054-7000.root',
+        'file:/afs/cern.ch/user/f/fbury/eos/HybridStudy/SpyRawToDigis321054-7001-321054-7500.root',
+        'file:/afs/cern.ch/user/f/fbury/eos/HybridStudy/SpyRawToDigis321054-7501-321054-8000.root',
+        'file:/afs/cern.ch/user/f/fbury/eos/HybridStudy/SpyRawToDigis321054-8001-321054-8500.root',
+        'file:/afs/cern.ch/user/f/fbury/eos/HybridStudy/SpyRawToDigis321054-8501-321054-9000.root',
+        'file:/afs/cern.ch/user/f/fbury/eos/HybridStudy/SpyRawToDigis321054-9001-321054-9500.root',         
+        'file:/afs/cern.ch/user/f/fbury/eos/HybridStudy/SpyRawToDigis321054-9501-321054-10000.root',
     #eventsToProcess = cms.untracked.VEventRange('321779:23-321779:23'),
 )
 
@@ -52,9 +73,9 @@ process.RAWoutput = cms.OutputModule("PoolOutputModule",
         filterName = cms.untracked.string('')
     ),
     #fileName = cms.untracked.string('~/work/HybridStudy/whatever321054.root'),
-    fileName = cms.untracked.string('~/work/HybridStudy/whatever321779_s.root'),
+    fileName = cms.untracked.string('~/work/HybridStudy/whatever321779.root'),
     #outputCommands = process.RAWEventContent.outputCommands,
-    outputCommands = cms.untracked.vstring("drop *"),
+    outputCommands = cms.untracked.vstring("drop*"),
     splitLevel = cms.untracked.int32(0)
 
 )
@@ -140,16 +161,19 @@ process.classicAna = cms.EDAnalyzer("SiStripHybridFormatAnalyzer",
 )   
 
 ## Comparison 
-excludedDetId = cms.vuint32(369174804,
-                            369137006, 
-                            369140942,
-                            369141870,
-                            369138237,
-                            402674446,
-                            470111728,
-                            369174808,
-                            369141806)
-
+excludedDetId = cms.vuint32()
+#excludedDetId = cms.vuint32([369174804, 
+#                             369137006, 
+#                             369140942,
+#                             369141870,
+#                             369138237,
+#                             402674446,
+#                             470111728,
+#                             369174808,
+#                             369141806,
+#                             470145008, 
+#                             470438384])
+                            
 process.diffRawZS = cms.EDAnalyzer("SiStripDigiDiff",
         A = cms.InputTag("zsHybrid", "VirginRaw"),
         B = cms.InputTag("zsClassic", "VirginRaw"),
@@ -174,11 +198,11 @@ process.clusterizeZS2 = process.siStripClusters.clone(DigiProducersList=cms.VInp
 process.clusterStatDiff = cms.EDProducer("SiStripClusterStatsDiff",
         A = cms.InputTag("clusterizeZS1"),
         B = cms.InputTag("clusterizeZS2"),
-        detectInvalidDetIds=cms.bool(True), 
+        detectInvalidDetIds=cms.bool(False), 
         invalidMinCharge=cms.double(0),
-        invalidMaxCharge=cms.double(1000),
-        invalidMinWidth=cms.double(30),
-        invalidMaxWidth=cms.double(40),
+        invalidMaxCharge=cms.double(2000),
+        invalidMinWidth=cms.double(50),
+        invalidMaxWidth=cms.double(55),
         excludedDetId = excludedDetId,
         )
 
@@ -196,7 +220,7 @@ process.baselineAnalyzerZS1 = process.SiStripBaselineAnalyzer.clone(
     plotBaselinePoints = cms.bool(True), ## set to true to plot the baseline points, also pass srcBaselinePoints then (from ZS with produceBaselinePoints=True, under BADAPVBASELINEPOINTS+tag)
     plotDigis = cms.bool(False), ## does not do anything
     plotClusters = cms.bool(True), ## would get the clusters from siStripClusters (hardcoded), so you'd need to change the code to add those plots (but it's independent of all the rest)
-    useInvalidDetIds = cms.bool(True), ## Get the invalid detIDs from SiStripDigiStatsDiff and SiStripClusterStatsDiff : enable either invalidDetIdDigis or invalidDetIdClusters  Input Tags
+    useInvalidDetIds = cms.bool(False), ## Get the invalid detIDs from SiStripDigiStatsDiff and SiStripClusterStatsDiff : enable either invalidDetIdDigis or invalidDetIdClusters  Input Tags
 
     srcProcessedRawDigi = cms.InputTag('zsHybridEmu','VirginRaw'), ## here pass VR (edm::DetSetVector<SiStripRawDigi>), 'processed' is confusing but it's actually VR
     srcAPVCM  =  cms.InputTag('zsHybridEmu','APVCMVirginRaw'),
@@ -215,7 +239,7 @@ process.baselineAnalyzerZS2 = process.SiStripBaselineAnalyzer.clone(
     plotBaselinePoints = cms.bool(True), ## set to true to plot the baseline points, also pass srcBaselinePoints then (from ZS with produceBaselinePoints=True, under BADAPVBASELINEPOINTS+tag)
     plotDigis = cms.bool(False), ## does not do anything
     plotClusters = cms.bool(True), ## would get the clusters from siStripClusters (hardcoded), so you'd need to change the code to add those plots (but it's independent of all the rest)
-    useInvalidDetIds = cms.bool(True), ## Get the invalid detIDs from SiStripDigiStatsDiff and SiStripClusterStatsDiff : enable either invalidDetIdDigis or invalidDetIdClusters  Input Tags
+    useInvalidDetIds = cms.bool(False), ## Get the invalid detIDs from SiStripDigiStatsDiff and SiStripClusterStatsDiff : enable either invalidDetIdDigis or invalidDetIdClusters  Input Tags
 
     srcProcessedRawDigi = cms.InputTag('zsClassic','VirginRaw'), ## here pass VR (edm::DetSetVector<SiStripRawDigi>), 'processed' is confusing but it's actually VR
     srcAPVCM  =  cms.InputTag('zsClassic','APVCMVirginRaw'),
@@ -240,7 +264,7 @@ process.hybridBaselineAnalyzer = cms.EDAnalyzer("SiStripHybridBaselineAnalyzer",
     plotBaselinePoints = cms.bool(True), ## set to true to plot the baseline points, also pass srcBaselinePoints then (from ZS with produceBaselinePoints=True, under BADAPVBASELINEPOINTS+tag)
     plotDigis = cms.bool(False), ## does not do anything
     plotClusters = cms.bool(True), ## would get the clusters from siStripClusters (hardcoded), so you'd need to change the code to add those plots (but it's independent of all the rest)
-    useInvalidDetIds = cms.bool(True), ## Get the invalid detIDs from SiStripDigiStatsDiff and SiStripClusterStatsDiff : enable either invalidDetIdDigis or invalidDetIdClusters  Input Tags
+    useInvalidDetIds = cms.bool(False), ## Get the invalid detIDs from SiStripDigiStatsDiff and SiStripClusterStatsDiff : enable either invalidDetIdDigis or invalidDetIdClusters  Input Tags
 
     srcVirginRawDigi = inputVR, ## here pass VR (edm::DetSetVector<SiStripRawDigi>), 'processed' is confusing but it's actually VR
     srcZSVirginRawDigi = cms.InputTag('zsHybridEmu','VirginRaw'), ## here pass VR (edm::DetSetVector<SiStripRawDigi>), 'processed' is confusing but it's actually VR
@@ -279,6 +303,30 @@ process.readRecHitZS2 = cms.EDAnalyzer("ReadRecHit",
         RecHitProducer = cms.string('recHitZS2'),
 )
 
+# Track reconstruction 
+process.load("RecoTracker.Configuration.RecoTracker_cff")
+
+from RecoTracker.TkSeedingLayers.PixelLessLayerPairs_cfi import PixelLessLayerPairs
+process.pixelLessLayerPairsZS1 = PixelLessLayerPairs.clone()
+
+process.pixelLessLayerPairsZS1.TIB.matchedRecHits = cms.InputTag("recHitZS1","matchedRecHit")
+process.pixelLessLayerPairsZS1.TIB.rphiRecHits    = cms.InputTag("recHitZS1","rphiRecHitUnmatched")
+process.pixelLessLayerPairsZS1.TIB.stereoRecHits  = cms.InputTag("recHitZS1","stereoRecHitUnmatched")
+
+process.pixelLessLayerPairsZS1.TID.matchedRecHits = cms.InputTag("recHitZS1","matchedRecHit")
+process.pixelLessLayerPairsZS1.TID.rphiRecHits    = cms.InputTag("recHitZS1","rphiRecHitUnmatched")
+process.pixelLessLayerPairsZS1.TID.stereoRecHits  = cms.InputTag("recHitZS1","stereoRecHitUnmatched")
+
+process.pixelLessLayerPairsZS1.TEC.matchedRecHits = cms.InputTag("recHitZS1","matchedRecHit")
+process.pixelLessLayerPairsZS1.TEC.rphiRecHits    = cms.InputTag("recHitZS1","rphiRecHitUnmatched")
+process.pixelLessLayerPairsZS1.TEC.stereoRecHits  = cms.InputTag("recHitZS1","stereoRecHitUnmatched")
+
+from RecoTracker.IterativeTracking.iterativeTk_cff import *
+from RecoTracker.IterativeTracking.ElectronSeeds_cff import *
+from RecoTracker.DeDx.dedxEstimators_cff import *
+process.tracking = cms.Sequence(iterTracking*electronSeedsSeq*doAlldEdXEstimators)
+
+
 # printcontent 
 process.load("FWCore.Modules.printContent_cfi")
 
@@ -291,20 +339,26 @@ process.DigiToRawZS = cms.Sequence(
         * process.clusterizeZS1 * process.clusterizeZS2
         * process.clusterStatDiff
         # Baseline 
-        * process.baselineAnalyzerZS1 * process.baselineAnalyzerZS2
-        * process.hybridBaselineAnalyzer
+        #* process.baselineAnalyzerZS1 * process.baselineAnalyzerZS2
+        #* process.hybridBaselineAnalyzer
         #* process.baselineComparator
         #* process.hybridAna * process.classicAna
         # RecHit 
-        #* process.recHitZS1 * process.recHitZS2
+         * process.recHitZS1 * process.recHitZS2
         # read RecHit #
         #* process.readRecHitZS1 #* process.readRecHitZS2
+        # Track reconstruction 
+        #* process.pixelLessLayerPairsZS1
+        #* process.tracking
         # Printcontent
-        #* process.printContent
+        * process.printContent
         )
+
+# TFileService output 
+
 process.TFileService = cms.Service("TFileService",
         #fileName = cms.string("/afs/cern.ch/user/f/fbury/work/HybridStudy/diffhistos321054.root"),
-        fileName = cms.string("/afs/cern.ch/user/f/fbury/work/HybridStudy/diffhistos321779_IdClusters_width30To40_charge0To1000_without_moreDetiD.root"),
+        fileName = cms.string("/afs/cern.ch/user/f/fbury/work/HybridStudy/diffhistos321779_recHit.root"),
         closeFileFast = cms.untracked.bool(True),
         )
 
@@ -325,8 +379,8 @@ associatePatAlgosToolsTask(process)
 # Customisation from command line
 
 # Add early deletion of temporary data products to reduce peak memory need
-from Configuration.StandardSequences.earlyDeleteSettings_cff import customiseEarlyDelete
-process = customiseEarlyDelete(process)
+#from Configuration.StandardSequences.earlyDeleteSettings_cff import customiseEarlyDelete
+#process = customiseEarlyDelete(process)
 # End adding early deletion
 
 #process.MessageLogger = cms.Service(

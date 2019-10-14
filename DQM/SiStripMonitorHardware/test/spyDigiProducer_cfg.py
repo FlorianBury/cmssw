@@ -1,11 +1,27 @@
 #test configuration for the spy data unpacking code
-
+import sys
 import FWCore.ParameterSet.Config as cms
 from Configuration.AlCa.GlobalTag import GlobalTag
+from FWCore.ParameterSet.VarParsing import VarParsing
 
 process = cms.Process('SPYPROD')
 
 process.options = cms.untracked.PSet(wantSummary = cms.untracked.bool(True))
+
+# ---- VarParsing ----
+options = VarParsing('analysis')
+options.register('start', 
+                 '0',
+                 VarParsing.multiplicity.singleton,
+                 VarParsing.varType.string,
+                 "First event to be processed (default = 0)")
+options.register('stop', 
+                 'max',
+                 VarParsing.multiplicity.singleton,
+                 VarParsing.varType.string,
+                 "Last event to be processed (default = max)")
+
+options.parseArguments()
 
 # ---- Input data ----
 # See https://twiki.cern.ch/twiki/bin/viewauth/CMS/FEDSpyChannelData for more spy data.
@@ -15,10 +31,11 @@ process.source = cms.Source(
         # Spy data (raw) in edm format, as converted from .dat
 #'file:/eos/cms/store/group/dpg_tracker_strip/tracker/Online/store/streamer/SiStripSpy/Commissioning11/321779/run321779.root',
 'file:/eos/cms/store/group/dpg_tracker_strip/tracker/Online/store/streamer/SiStripSpy/Commissioning11/321054/run321054.root',
-       )
+       ),
+    eventsToProcess = cms.untracked.VEventRange('321054:'+options.start+'-321054:'+options.stop),
     )
 
-process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(500))
+process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(10000))
 
 # --- Message Logging ---
 #process.Tracer = cms.Service('Tracer',indentation = cms.untracked.string('$$'))
@@ -67,11 +84,10 @@ process.p = cms.Path(
     *process.SiStripSpyDigiConverter
     )
 
-
 # --- What to output ---
 process.output = cms.OutputModule(
     "PoolOutputModule",
-    fileName = cms.untracked.string("/afs/cern.ch/user/f/fbury/work/HybridStudy/SpyRawToDigis321054.root"),
+    fileName = cms.untracked.string("/afs/cern.ch/user/f/fbury/eos/HybridStudy/SpyRawToDigis321054-"+options.start+"-321054-"+options.stop+".root"),
     #fileName = cms.untracked.string("/afs/cern.ch/user/f/fbury/work/HybridStudy/SpyRawToDigis321779.root"),
     #fileName = cms.untracked.string("SpyRawToDigis321054_TEST.root"),
     outputCommands = cms.untracked.vstring(

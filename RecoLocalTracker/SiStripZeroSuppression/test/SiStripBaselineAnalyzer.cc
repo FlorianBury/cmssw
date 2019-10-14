@@ -20,6 +20,8 @@ Implementation:
 // system include files
 #include <memory>
 #include <iostream>
+#include <map>
+#include <vector>
 
 // user include files
 #include "FWCore/Framework/interface/Frameworkfwd.h"
@@ -52,6 +54,13 @@ Implementation:
 
 #include "DataFormats/Provenance/interface/RunLumiEventNumber.h"
 
+#include "DataFormats/TrackerCommon/interface/TrackerTopology.h"
+#include "DataFormats/SiPixelDetId/interface/PixelSubdetector.h"
+#include "DataFormats/SiStripDetId/interface/StripSubdetector.h"
+#include "DataFormats/SiStripDetId/interface/SiStripDetId.h"
+#include "DataFormats/DetId/interface/DetId.h"
+
+
 //ROOT inclusion
 #include "TROOT.h"
 #include "TFile.h"
@@ -67,6 +76,7 @@ Implementation:
 #include "TGraph.h"
 #include "TMultiGraph.h"
 #include "THStack.h"
+#include "TPRegexp.h"
 
 
 //
@@ -83,6 +93,7 @@ class SiStripBaselineAnalyzer : public edm::one::EDAnalyzer<edm::one::SharedReso
         void beginJob() override ;
         void analyze(const edm::Event&, const edm::EventSetup&) override;
         void endJob() override ;
+
 
         std::unique_ptr<SiStripPedestalsSubtractor>   subtractorPed_;
         edm::ESHandle<SiStripPedestals> pedestalsHandle;
@@ -114,8 +125,9 @@ class SiStripBaselineAnalyzer : public edm::one::EDAnalyzer<edm::one::SharedReso
         TH1F* h1ProcessedRawDigis_;
         TH1F* h1Baseline_;
         TH1F* h1Clusters_;
-        TH1F* h1APVCM_;
         TH1F* h1Pedestals_;	  
+        std::map<std::string,std::map<uint32_t,TH1F*>> h1APVCM_;
+        //std::map<std::string,std::pair<std::vector<uint32_t>,std::vector<TH1F*>>> h1APVCM_;
 
         TCanvas* Canvas_;
         std::vector<TH1F> vProcessedRawDigiHisto_;
@@ -166,11 +178,46 @@ SiStripBaselineAnalyzer::SiStripBaselineAnalyzer(const edm::ParameterSet& conf){
     h1BadAPVperEvent_->SetLineWidth(2);
     h1BadAPVperEvent_->SetLineStyle(2);
 
-    h1APVCM_ = fs_->make<TH1F>("APV CM","APV CM", 2048, -1023.5, 1023.5);
-    h1APVCM_->SetXTitle("APV CM [adc]");
-    h1APVCM_->SetYTitle("Entries");
-    h1APVCM_->SetLineWidth(2);
-    h1APVCM_->SetLineStyle(2);
+    h1APVCM_["TIB"][1] = fs_->make<TH1F>("APV_CM_TIB_layer_1","APV CM TIB layer 1",  2048, -1023.5, 1023.5);
+    h1APVCM_["TIB"][2] = fs_->make<TH1F>("APV_CM_TIB_layer_2","APV CM TIB layer 2",  2048, -1023.5, 1023.5);
+    h1APVCM_["TIB"][3] = fs_->make<TH1F>("APV_CM_TIB_layer_3","APV CM TIB layer 3",  2048, -1023.5, 1023.5);
+    h1APVCM_["TIB"][4] = fs_->make<TH1F>("APV_CM_TIB_layer_4","APV CM TIB layer 4",  2048, -1023.5, 1023.5);
+
+    h1APVCM_["TOB"][1] = fs_->make<TH1F>("APV_CM_TOB_layer_1","APV CM TOB layer 1",  2048, -1023.5, 1023.5);
+    h1APVCM_["TOB"][2] = fs_->make<TH1F>("APV_CM_TOB_layer_2","APV CM TOB layer 2",  2048, -1023.5, 1023.5);
+    h1APVCM_["TOB"][3] = fs_->make<TH1F>("APV_CM_TOB_layer_3","APV CM TOB layer 3",  2048, -1023.5, 1023.5);
+    h1APVCM_["TOB"][4] = fs_->make<TH1F>("APV_CM_TOB_layer_4","APV CM TOB layer 4",  2048, -1023.5, 1023.5);
+    h1APVCM_["TOB"][5] = fs_->make<TH1F>("APV_CM_TOB_layer_5","APV CM TOB layer 5",  2048, -1023.5, 1023.5);
+    h1APVCM_["TOB"][6] = fs_->make<TH1F>("APV_CM_TOB_layer_6","APV CM TOB layer 6",  2048, -1023.5, 1023.5);
+
+    h1APVCM_["TID"][1] = fs_->make<TH1F>("APV_CM_TID_layer_1","APV CM TID layer 1",  2048, -1023.5, 1023.5);
+    h1APVCM_["TID"][2] = fs_->make<TH1F>("APV_CM_TID_layer_2","APV CM TID layer 2",  2048, -1023.5, 1023.5);
+    h1APVCM_["TID"][3] = fs_->make<TH1F>("APV_CM_TID_layer_3","APV CM TID layer 3",  2048, -1023.5, 1023.5);
+
+    h1APVCM_["TEC"][1] = fs_->make<TH1F>("APV_CM_TEC_layer_1","APV CM TEC layer 1",  2048, -1023.5, 1023.5);
+    h1APVCM_["TEC"][2] = fs_->make<TH1F>("APV_CM_TEC_layer_2","APV CM TEC layer 2",  2048, -1023.5, 1023.5);
+    h1APVCM_["TEC"][3] = fs_->make<TH1F>("APV_CM_TEC_layer_3","APV CM TEC layer 3",  2048, -1023.5, 1023.5);
+    h1APVCM_["TEC"][4] = fs_->make<TH1F>("APV_CM_TEC_layer_4","APV CM TEC layer 4",  2048, -1023.5, 1023.5);
+    h1APVCM_["TEC"][5] = fs_->make<TH1F>("APV_CM_TEC_layer_5","APV CM TEC layer 5",  2048, -1023.5, 1023.5);
+    h1APVCM_["TEC"][6] = fs_->make<TH1F>("APV_CM_TEC_layer_6","APV CM TEC layer 6",  2048, -1023.5, 1023.5);
+    h1APVCM_["TEC"][7] = fs_->make<TH1F>("APV_CM_TEC_layer_7","APV CM TEC layer 7",  2048, -1023.5, 1023.5);
+    h1APVCM_["TEC"][8] = fs_->make<TH1F>("APV_CM_TEC_layer_8","APV CM TEC layer 8",  2048, -1023.5, 1023.5);
+    h1APVCM_["TEC"][9] = fs_->make<TH1F>("APV_CM_TEC_layer_9","APV CM TEC layer 9",  2048, -1023.5, 1023.5);
+
+    for (auto & subDet : h1APVCM_){
+        for (auto & layer : subDet.second){
+            layer.second->SetXTitle("APV CM [adc]");
+            layer.second->SetYTitle("Entries");
+            layer.second->SetLineWidth(2);
+            layer.second->SetLineStyle(2);
+        }
+    }
+
+    //h1APVCM_ = fs_->make<TH1F>("APV CM","APV CM", 2048, -1023.5, 1023.5);
+    //h1APVCM_->SetXTitle("APV CM [adc]");
+    //h1APVCM_->SetYTitle("Entries");
+    //h1APVCM_->SetLineWidth(2);
+    //h1APVCM_->SetLineStyle(2);
 
     h1Pedestals_ = fs_->make<TH1F>("Pedestals","Pedestals", 2048, -1023.5, 1023.5);
     h1Pedestals_->SetXTitle("Pedestals [adc]");
@@ -185,8 +232,6 @@ SiStripBaselineAnalyzer::SiStripBaselineAnalyzer(const edm::ParameterSet& conf){
 
 SiStripBaselineAnalyzer::~SiStripBaselineAnalyzer()
 {
-
-
 
 }
 
@@ -219,10 +264,19 @@ SiStripBaselineAnalyzer::analyze(const edm::Event& e, const edm::EventSetup& es)
         edm::InputTag CMLabel("siStripZeroSuppression:APVCM");
         e.getByToken(srcAPVCM_, moduleCM);
 
+        edm::ESHandle<TrackerTopology> tTopoHandle;
+        es.get<TrackerTopologyRcd>().get(tTopoHandle);
+        const TrackerTopology* const tTopo = tTopoHandle.product();
+
         edm::DetSetVector<SiStripProcessedRawDigi>::const_iterator itCMDetSetV =moduleCM->begin();
         for (; itCMDetSetV != moduleCM->end(); ++itCMDetSetV){  
             edm::DetSet<SiStripProcessedRawDigi>::const_iterator  itCM= itCMDetSetV->begin();
-            for(;itCM != itCMDetSetV->end(); ++itCM) h1APVCM_->Fill(itCM->adc());
+            auto id = DetId(itCMDetSetV->detId());
+            std::string subDet = tTopo->print(id).substr(0,3);
+            uint32_t layer = tTopo->layer(id);
+            for(;itCM != itCMDetSetV->end(); ++itCM){
+                h1APVCM_[subDet][layer]->Fill(itCM->adc());
+            }
         }
     }
 
@@ -373,9 +427,9 @@ SiStripBaselineAnalyzer::analyze(const edm::Event& e, const edm::EventSetup& es)
         edm::DetSet<SiStripProcessedRawDigi>::const_iterator  itBaseline;
         const bool hasBaseline = ( plotBaseline_ && ( moduleBaseline->find(detId) != moduleBaseline->end() )  );
         if (hasBaseline) {
-          itBaseline = (*moduleBaseline)[detId].begin();
+            itBaseline = (*moduleBaseline)[detId].begin();
         } else if ( plotBaseline_ ) {
-          std::cout << "Asked to plot baseline, but it's not there :-(" << std::endl;
+            std::cout << "Asked to plot baseline, but it's not there :-(" << std::endl;
         }
 
         std::vector<int16_t>::const_iterator itProcessedRawDigis;
