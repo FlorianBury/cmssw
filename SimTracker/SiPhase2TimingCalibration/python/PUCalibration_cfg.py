@@ -1,9 +1,3 @@
-# Auto generated configuration file
-# using: 
-# Revision: 1.19 
-# Source: /local/reps/CMSSW/CMSSW/Configuration/Applications/python/ConfigBuilder.py,v 
-# with command line options: FourMuExtendedPt_1_200_pythia8_cfi --conditions auto:phase2_realistic_T14 -n 10 --era Phase2C8 --eventcontent FEVTDEBUG --relval 10000,100 -s GEN,SIM --datatier GEN-SIM --beamspot HLLHC --geometry Extended2026D41 --python step1_GEN_SIM_CMSSW111_D41_cfg.py --no_exec
-
 from FWCore.ParameterSet.VarParsing import VarParsing
 
 options = VarParsing ('analysis')
@@ -44,10 +38,6 @@ options.parseArguments()
 
 import FWCore.ParameterSet.Config as cms
 
-#from Configuration.Eras.Era_Phase2C8_cff import Phase2C8 -> Can't find
-#process = cms.Process('SIM',Phase2C8)
-#from Configuration.Eras.Era_Phase2C9_cff import Phase2C9
-#process = cms.Process('SIM',Phase2C9)
 from Configuration.StandardSequences.Eras import eras
 process = cms.Process('MIX',eras.Phase2)
 
@@ -56,12 +46,9 @@ process.load('Configuration.StandardSequences.Services_cff')
 process.load('SimGeneral.HepPDTESSource.pythiapdt_cfi')
 process.load('FWCore.MessageService.MessageLogger_cfi')
 process.load('Configuration.EventContent.EventContent_cff')
-#process.load('SimGeneral.MixingModule.mixNoPU_cfi')
 process.load('SimGeneral.MixingModule.mix_POISSON_average_cfi')
 process.load('SimGeneral.MixingModule.cfwriter_cfi')
 process.load("SimGeneral.MixingModule.trackingTruthProducerSelection_cfi")
-#process.load('Configuration.Geometry.GeometryExtended2026D41Reco_cff')
-#process.load('Configuration.Geometry.GeometryExtended2026D41_cff') -> Could not find
 process.load('Configuration.Geometry.GeometryExtended2026D49Reco_cff')
 process.load('Configuration.Geometry.GeometryExtended2026D49_cff')
 process.load('Configuration.StandardSequences.MagneticField_cff')
@@ -79,11 +66,6 @@ process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
 # Other statements
 from Configuration.AlCa.GlobalTag import GlobalTag
 process.GlobalTag = GlobalTag(process.GlobalTag, 'auto:phase2_realistic', '')
-#process.genstepfilter.triggerConditions=cms.vstring("generation_step")
-#from Configuration.AlCa.GlobalTag import GlobalTag
-##process.GlobalTag = GlobalTag(process.GlobalTag, 'auto:phase2_realistic_T14', '') -> Could not find
-#process.GlobalTag = GlobalTag(process.GlobalTag, 'auto:phase2_realistic_T15', '')
-
 
 process.maxEvents = cms.untracked.PSet(
     input = cms.untracked.int32(options.N),
@@ -119,16 +101,11 @@ process.source = cms.Source("PoolSource",
 )
 
 
-#process.source = cms.Source("EmptySource",
-#   firstEvent = cms.untracked.uint32(1)
-#)   
-
 process.options = cms.untracked.PSet(
     FailPath = cms.untracked.vstring(),
     IgnoreCompletely = cms.untracked.vstring(),
     Rethrow = cms.untracked.vstring(),
     SkipEvent = cms.untracked.vstring(),
-    #SkipEvent = cms.untracked.vstring("ProductNotFound"),
     allowUnscheduled = cms.obsolete.untracked.bool,
     canDeleteEarly = cms.untracked.vstring(),
     emptyRunLumiMode = cms.obsolete.untracked.string,
@@ -157,38 +134,11 @@ process.SimpleMemoryCheck = cms.Service("SimpleMemoryCheck",
 )
 
 
-# Production Info
-#process.configurationMetadata = cms.untracked.PSet(
-#    annotation = cms.untracked.string('FourMuExtendedPt_1_200_pythia8_cfi nevts:10'),
-#    name = cms.untracked.string('Applications'),
-#    version = cms.untracked.string('$Revision: 1.19 $')
-#)
 process.configurationMetadata = cms.untracked.PSet(
     annotation = cms.untracked.string('step2 nevts:10'),
     name = cms.untracked.string('Applications'),
     version = cms.untracked.string('$Revision: 1.19 $')
 )
-
-# Pythia gun 
-#process.generator = cms.EDFilter("Pythia8PtGun",
-#    PGunParameters = cms.PSet(
-#        AddAntiParticle = cms.bool(True),
-#        MaxEta = cms.double(2.5),
-#        MaxPhi = cms.double(3.14159265359),
-#        MaxPt = cms.double(200.0),
-#        MinEta = cms.double(-2.5),
-#        MinPhi = cms.double(-3.14159265359),
-#        MinPt = cms.double(0.9),
-#            ParticleID = cms.vint32(-13, -13)
-#    ),
-#    PythiaParameters = cms.PSet(
-#        parameterSets = cms.vstring()
-#    ),
-#    Verbosity = cms.untracked.int32(0),
-#    firstRun = cms.untracked.uint32(1),
-#    psethack = cms.string('Four mu pt 1 to 200')
-#)
-
 
 
 # Customization of Mixing Module
@@ -208,7 +158,8 @@ process.mix.input.fileNames = cms.untracked.vstring([
   'root://xrootd-cms.infn.it:///store/relval/CMSSW_10_4_0_pre2/RelValMinBias_14TeV/GEN-SIM/103X_upgrade2023_realistic_v2_2023D21noPU-v1/20000/50C9BEE3-A974-7647-878E-7FBD1B4E6F97.root',
   'root://xrootd-cms.infn.it:///store/relval/CMSSW_10_4_0_pre2/RelValMinBias_14TeV/GEN-SIM/103X_upgrade2023_realistic_v2_2023D21noPU-v1/20000/F7EAFA17-64E9-D343-A63F-25484924F49B.root',
                 ])
-process.mix.mixObjects.mixSH.crossingFrames.extend(['TrackerHitsTECHighTof', 
+process.mix.mixObjects.mixSH.crossingFrames.extend([
+        'TrackerHitsTECHighTof', 
         'TrackerHitsPixelBarrelHighTof', 
         'TrackerHitsPixelBarrelLowTof', 
         'TrackerHitsPixelEndcapHighTof', 
@@ -255,29 +206,29 @@ else:
 filename = filename.replace('.','p')+'.root'
 print ("Producing file %s"%filename)
 
-#process.DQMoutput = cms.OutputModule("DQMRootOutputModule",
-#    splitLevel = cms.untracked.int32(0),
-#    outputCommands = process.DQMEventContent.outputCommands,
-#    fileName = cms.untracked.string(filename),
-#    dataset = cms.untracked.PSet(
-#        filterName = cms.untracked.string(''),
-#        dataTier = cms.untracked.string('DQMIO')
-#    )
-#)
-
-process.FEVTDEBUGoutput = cms.OutputModule("PoolOutputModule",
-    SelectEvents = cms.untracked.PSet(
-        SelectEvents = cms.vstring('*')
-    ),
-    dataset = cms.untracked.PSet(
-        dataTier = cms.untracked.string('GEN-SIM'),
-        filterName = cms.untracked.string('')
-    ),
+process.DQMoutput = cms.OutputModule("DQMRootOutputModule",
+    splitLevel = cms.untracked.int32(0),
+    outputCommands = process.DQMEventContent.outputCommands,
     fileName = cms.untracked.string(filename),
-    outputCommands = process.FEVTDEBUGEventContent.outputCommands,
-    splitLevel = cms.untracked.int32(0)
+    dataset = cms.untracked.PSet(
+        filterName = cms.untracked.string(''),
+        dataTier = cms.untracked.string('DQMIO')
+    )
 )
 
+#process.FEVTDEBUGoutput = cms.OutputModule("PoolOutputModule",
+#    SelectEvents = cms.untracked.PSet(
+#        SelectEvents = cms.vstring('*')
+#    ),
+#    dataset = cms.untracked.PSet(
+#        dataTier = cms.untracked.string('GEN-SIM'),
+#        filterName = cms.untracked.string('')
+#    ),
+#    fileName = cms.untracked.string(filename),
+#    outputCommands = process.FEVTDEBUGEventContent.outputCommands,
+#    splitLevel = cms.untracked.int32(0)
+#)
+#
 process.load('Phase2TrackerBXHistogram_cfi')
 process.digiana_seq = cms.Sequence(process.timeCalib)
 
@@ -308,8 +259,8 @@ process.dqm_comm = cms.Sequence(process.dqmEnv)
 
 # Path and EndPath definitions
 process.endjob_step = cms.EndPath(process.endOfProcess)
-#process.DQMoutput_step = cms.EndPath(process.DQMoutput)
-process.DQMoutput_step = cms.EndPath(process.FEVTDEBUGoutput)
+process.DQMoutput_step = cms.EndPath(process.DQMoutput)
+#process.DQMoutput_step = cms.EndPath(process.FEVTDEBUGoutput)
 
 process.dqm_step =  cms.Path(process.digiana_seq * process.dqm_comm )
 
@@ -320,20 +271,4 @@ process.schedule = cms.Schedule(
     process.dqm_step,
     process.DQMoutput_step
 )
-
-# Path and EndPath definitions
-#process.generation_step = cms.Path(process.pgen)
-#process.simulation_step = cms.Path(process.psim)
-#process.genfiltersummary_step = cms.EndPath(process.genFilterSummary)
-#process.dqm_step = cms.Path(process.digiana_seq * process.dqm_comm)
-#process.endjob_step = cms.EndPath(process.endOfProcess)
-#process.FEVTDEBUGoutput_step = cms.EndPath(process.FEVTDEBUGoutput)
-#
-## Schedule definition
-#process.schedule = cms.Schedule(process.generation_step,process.genfiltersummary_step,process.simulation_step,process.dqm_step,process.endjob_step,process.FEVTDEBUGoutput_step)
-#from PhysicsTools.PatAlgos.tools.helpers import associatePatAlgosToolsTask
-#associatePatAlgosToolsTask(process)
-## filter all path with the production filter sequence
-#for path in process.paths:
-#	getattr(process,path).insert(0, process.generator)
 
