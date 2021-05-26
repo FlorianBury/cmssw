@@ -68,7 +68,6 @@ namespace scaling {
 //
 Phase2TrackerBXHistogram::Phase2TrackerBXHistogram(const edm::ParameterSet& iConfig) :
     config_(iConfig),
-    pixelFlag_(config_.getParameter<bool >("PixelPlotFillingFlag")),
     geomType_(config_.getParameter<std::string>("GeometryType")),
     simTrackSrc_(config_.getParameter<edm::InputTag>("SimTrackSource")),
     pSimHitSrc_(config_.getParameter<std::vector<edm::InputTag> >("PSimHitSource")),
@@ -94,7 +93,9 @@ Phase2TrackerBXHistogram::Phase2TrackerBXHistogram(const edm::ParameterSet& iCon
     GeVperElectron(3.61E-09), // 1 electron(3.61eV, 1keV(277e, mod 9/06 d.k.
     verbosity_(config_.getParameter<int>("VerbosityLevel"))
 {
-    for(const auto& itag : pSimHitSrc_) simHitTokens_.push_back(consumes< edm::PSimHitContainer >(itag));
+    for (const auto& itag : pSimHitSrc_){
+        simHitTokens_.push_back(std::make_pair(itag,consumes<edm::PSimHitContainer>(itag)));
+    }
 
     edm::LogInfo("Phase2TrackerBXHistogram") << ">>> Construct Phase2TrackerBXHistogram ";
     if (verbosity_ > 0){
@@ -242,24 +243,29 @@ void Phase2TrackerBXHistogram::analyze(const edm::Event& iEvent, const edm::Even
             std::cout << "Loop over hit "<<std::endl;
         }
 
-        std::vector<edm::InputTag>::iterator itag = pSimHitSrc_.begin();
+//        std::vector<edm::InputTag>::iterator itag = pSimHitSrc_.begin();
+//        for (const auto& itoken : simHitTokens_) {
         for (const auto& itoken : simHitTokens_) {
             edm::Handle<edm::PSimHitContainer> simHitHandle;
-            iEvent.getByToken(itoken, simHitHandle);
+            iEvent.getByToken(itoken.second, simHitHandle);
+//            if (itoken.first.encode() == "FastTimerHitsBarrel")
+//                continue;
+//            if (itoken.first.encode() == "FastTimerHitsEndcap")
+//                continue;
             if (verbosity_>1){
-                std::cout << "Hit collection " << *itag++ << std::endl;
+                std::cout << "Hit collection " << itoken.first << std::endl;
             }
             if (!simHitHandle.isValid()){
-                continue;
-            }
-            else{
                 if (verbosity_>1){
                     std::cout<<"Not valid token"<<std::endl;
                 }
+                continue;
             }
             const edm::PSimHitContainer& simHits = (*simHitHandle.product());
             for(edm::PSimHitContainer::const_iterator isim = simHits.begin(); isim != simHits.end(); ++isim){
                 int tkid = (*isim).trackId();
+                if (verbosity_ > 1)
+                    std::cout << "Track id "<<tkid<<std::endl;
                 if (tkid <= 0) continue;
                 const PSimHit& simHit = (*isim);
 
@@ -270,35 +276,34 @@ void Phase2TrackerBXHistogram::analyze(const edm::Event& iEvent, const edm::Even
                 float dZ = (*isim).entryPoint().z() - (*isim).exitPoint().z();  
                 if (fabs(dZ) <= 0.01) continue;
 
-                int layer = -1;
-                if (pixelFlag_) {
-                    if (detId.subdetId() == PixelSubdetector::PixelBarrel || 
-                            detId.subdetId() == PixelSubdetector::PixelEndcap) layer = tTopo->getITPixelLayerNumber(rawid);
-                } else layer = tTopo->getOTLayerNumber(rawid);
-                if (verbosity_ > 2)
+                /* check if strip */
+                if (!isStrip(detId)){
+                    if (verbosity_ > 1){
+                        std::cout<<"\tNot a strip hit ("<< rawid <<") -> discarded"<<std::endl;
+                    }
+                    continue;
+                }
+
+                /* Layer and geometry */
+                int layer = tTopo->getOTLayerNumber(rawid);
+                if (verbosity_ > 1)
                     std::cout << " rawid " << rawid << " layer " << layer << std::endl;
                 if (layer < 0) continue;
-
-                /* check if pixel */
-                bool pass = false;
-                if (pixelFlag_) {
-                    if (isPixel(detId)) pass = true;                                                                                                                                                                  
-                } else {
-                    if (!isPixel(detId)) pass = true;
-                }
-                if (!pass) continue;
-
                 const GeomDet *geomDet = tGeom->idToDet(detId);
-                if (!geomDet) continue;
+                if (!geomDet){
+                    if (verbosity_>1){
+                        std::cout<<"\tGeometry not valid"<<std::endl;
+                    }
+                    continue;
+                }
                 Global3DPoint pdPos = geomDet->surface().toGlobal(isim->localPosition());
-
 
                 int bx_true  = simHit.eventId().bunchCrossing();
                 int event = simHit.eventId().event();
                 float time_to_detid_ns = pdPos.mag()/(CLHEP::c_light*CLHEP::ns/CLHEP::cm);
                 float tof = (*isim).timeOfFlight();
-                //float tkpt = Phase2TrackerBXHistogram::getSimTrackPt(simHit.eventId(), tkid);
-                float tkpt = 3.;
+                float tkpt = Phase2TrackerBXHistogram::getSimTrackPt(simHit.eventId(), tkid);
+                //float tkpt = 3.;
                 float corr_tof = tof - time_to_detid_ns;
                 float charge = simHit.energyLoss()/GeVperElectron;
 
@@ -307,7 +312,7 @@ void Phase2TrackerBXHistogram::analyze(const edm::Event& iEvent, const edm::Even
                 }
 
                 if (tkpt <= pTCut_){
-                    if (verbosity_>2){
+                    if (verbosity_>1){
                         std::cout <<"PT "<<tkpt<<" below cut at "<<pTCut_<<" -> dismissed"<<std::endl; 
                     }
                     continue;
@@ -458,6 +463,11 @@ float Phase2TrackerBXHistogram::getSimTrackPt(EncodedEventId event_id, unsigned 
 bool Phase2TrackerBXHistogram::isPixel(const DetId& detId) {
     return (detId.subdetId() == PixelSubdetector::PixelBarrel ||  detId.subdetId() == PixelSubdetector::PixelEndcap);
 }
+
+bool Phase2TrackerBXHistogram::isStrip(const DetId& detId) {
+    return (detId.subdetId() == SiStripSubdetector::TIB || detId.subdetId() == SiStripSubdetector::TID || detId.subdetId() == SiStripSubdetector::TOB || detId.subdetId() == SiStripSubdetector::TEC);
+}
+
 
 //bool Phase2TrackerBXHistogram::select_hit(const PSimHit& hit, double tCorr, double& sigScale) const {
 bool Phase2TrackerBXHistogram::select_hit(float charge, int bx, float tof, float tcorr, DetId det_id, int hitDetectionMode){

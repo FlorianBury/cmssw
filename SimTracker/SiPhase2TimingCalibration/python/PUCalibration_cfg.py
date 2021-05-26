@@ -159,7 +159,6 @@ process.mix.input.fileNames = cms.untracked.vstring([
   'root://xrootd-cms.infn.it:///store/relval/CMSSW_10_4_0_pre2/RelValMinBias_14TeV/GEN-SIM/103X_upgrade2023_realistic_v2_2023D21noPU-v1/20000/F7EAFA17-64E9-D343-A63F-25484924F49B.root',
                 ])
 process.mix.mixObjects.mixSH.crossingFrames.extend([
-        'TrackerHitsTECHighTof', 
         'TrackerHitsPixelBarrelHighTof', 
         'TrackerHitsPixelBarrelLowTof', 
         'TrackerHitsPixelEndcapHighTof', 
@@ -171,7 +170,9 @@ process.mix.mixObjects.mixSH.crossingFrames.extend([
         'TrackerHitsTIDHighTof', 
         'TrackerHitsTIDLowTof', 
         'TrackerHitsTOBHighTof',
-        'TrackerHitsTOBLowhTof'])
+        'TrackerHitsTOBLowTof',
+        'FastTimerHitsBarrel',
+        'FastTimerHitsEndcap',])
 process.mix.digitizers.mergedtruth.select.signalOnlyTP = cms.bool(False)
 process.trackingParticles.simHitCollections = cms.PSet()
 process.mix.digitizers.mergedtruth = cms.PSet(process.trackingParticles)
@@ -183,7 +184,7 @@ process.dump = cms.EDAnalyzer("EventContentAnalyzer")
 # Output definition
 import random
 if options.mode == 'scan':
-    filename = 'BXHistScan_N{:d}_threshold{:d}_thresSmear{:0.1f}_ToFSmear{:0.1f}_raw'.format(
+    filename = 'BXHistScan_N_{:d}_threshold{:d}_thresholdsmearing_{:0.1f}_tofsmearing_{:0.1f}_raw'.format(
                     options.N,
                     int(options.threshold),
                     options.thresholdsmearing,
@@ -194,9 +195,9 @@ elif options.mode == 'emulate':
     else:
         offset_emulate = round(options.offset,2)
         
-    filename = 'BXHistEmulateDelay{:0.2f}_N{:d}_threshold{:d}_thresSmear{:0.1f}_ToFSmear{:0.1f}_raw'.format(
-                    options.N,
+    filename = 'BXHistEmulateDelay_{:0.2f}_N_{:d}_threshold{:d}_thresholdsmearing_{:0.1f}_tofsmearing_{:0.1f}_raw'.format(
                     offset_emulate,
+                    options.N,
                     int(options.threshold),
                     options.thresholdsmearing,
                     options.tofsmearing)

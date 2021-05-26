@@ -48,6 +48,7 @@ class Phase2TrackerBXHistogram : public DQMEDAnalyzer{
         void analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup) override;
 
         bool isPixel(const DetId& detId);
+        bool isStrip(const DetId& detId);
 
         struct HistModes{
             MonitorElement* Sampled;
@@ -84,7 +85,6 @@ class Phase2TrackerBXHistogram : public DQMEDAnalyzer{
 
         //
 
-        bool pixelFlag_;
         std::string geomType_;
 
         edm::InputTag simTrackSrc_;
@@ -97,7 +97,8 @@ class Phase2TrackerBXHistogram : public DQMEDAnalyzer{
         //const edm::EDGetTokenT<std::vector<TrackingParticle> > tParticleToken_;
         //edm::Handle<std::vector<TrackingParticle> > tParticleHandle_;
         edm::Handle<edm::SimTrackContainer> simTrackHandle_;
-        std::vector< edm::EDGetTokenT< edm::PSimHitContainer > > simHitTokens_;
+        //std::vector< edm::EDGetTokenT< edm::PSimHitContainer > > simHitTokens_;
+        std::vector<std::pair<edm::InputTag,edm::EDGetTokenT<edm::PSimHitContainer>>> simHitTokens_;
 
         edm::Handle<edm::PSimHitContainer> simHits;
         edm::Handle<edm::SimTrackContainer> simTracks;

@@ -162,8 +162,8 @@ class SubmitScans:
         config.sbatch_partition = 'cp3'
         config.sbatch_qos = 'cp3'
         config.sbatch_chdir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),'python')
-        config.sbatch_time = '0-01:00:00'
-        config.sbatch_memPerCPU= '2000'
+        config.sbatch_time = '0-02:00:00'
+        config.sbatch_memPerCPU= '3000'
         config.environmentType = "cms"
         config.cmsswDir = config.sbatch_chdir.split('src')[0]+'src'
         config.inputSandboxContent = ['*py']
@@ -244,9 +244,9 @@ parser.add_argument('--debug',action='store_true',required=False,default=False,
 args = parser.parse_args()
 
 params = {
-           'threshold' : np.linspace(2000,8000,61),
+           'threshold' : np.linspace(2000,8000,31),
            'thresholdsmearing' : np.linspace(0,1000,11),
-           'tofsmearing' : np.linspace(0,3,31),
+           'tofsmearing' : np.linspace(0,5,26),
            'N' : [100],
          }
 #params = {
